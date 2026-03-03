@@ -95,3 +95,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full Git workflow.
 
 - Python >= 3.9
 - Dependencies: `streamlit`, `pandas`, `pytest`, `ruff`, `black`
+
+---
+*This project is part of an L3 Bioinformatics course.*
