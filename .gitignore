@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing / Linting
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Teacher notes (private, never commit)
+_teacher/
+
+# Claude Code config
+.claude/
