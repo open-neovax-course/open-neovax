@@ -207,14 +207,13 @@ def get_score(candidate: Candidate) -> tuple[str, float]:
 
 ---
 
-## 10. Session schedule (6 x 4h)
+## 10. Session schedule (5 x 4h)
 
 1. Onboarding & Git
 2. Naive score
 3. External data
-4. Robustness
-5. Integration
-6. Analysis & presentations
+4. Robustness & integration
+5. Analysis & presentations
 
 ---
 
