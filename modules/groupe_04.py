@@ -23,7 +23,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
-SCORE_NAME = "c_hla_delta_binding"
+SCORE_NAME = "C_hla_delta_binding"
 
 
 # ══════════════════════════════════════════════════════════════════════
