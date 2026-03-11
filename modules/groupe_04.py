@@ -1,20 +1,10 @@
-"""
-Template module — Open-NeoVax
-=============================
-
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
-
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
-"""
+"""Group 04 scoring module."""
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pandas as pd
 
 # ──────────────────────────────────────────────────────────────────────
 # Import the Candidate type.
@@ -29,15 +19,11 @@ if TYPE_CHECKING:
 #  CONSTANTS
 # ══════════════════════════════════════════════════════════════════════
 
-# Path to the data/ directory at the project root.
-# Useful if your module needs to load an external file
-# (PSSM matrix, self-peptide list, etc.).
+from pathlib import Path
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
-# Name of the score returned by this module.
-# IMPORTANT: this name must be unique across all modules!
-# Convention: <department>_<concept>[_detail]
-SCORE_NAME = "template_score"
+SCORE_NAME = "c_hla_delta_binding"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -49,15 +35,23 @@ SCORE_NAME = "template_score"
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
+def _load_pssm() -> pd.DataFrame:
+    """Load the HLA-A*02:01 PSSM used for delta binding."""
+    return pd.read_csv(DATA_DIR / "hla_pssm_A0201.csv", index_col=0)
 
-    Replace this computation with your biological logic.
-    """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
+
+def _pssm_score(peptide: str, pssm: pd.DataFrame) -> float:
+    """Compute the raw PSSM score for a 9-mer peptide."""
+    if len(peptide) != 9:
+        return 0.0
+
+    total = 0.0
+    for pos, aa in enumerate(peptide, start=1):
+        column = f"P{pos}"
+        if aa not in pssm.index or column not in pssm.columns:
+            return 0.0
+        total += float(pssm.loc[aa, column])
+    return total
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -66,33 +60,9 @@ def _compute_something(peptide: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
-
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
-
-    Parameters
-    ----------
-    candidate : Candidate
-        Object containing neo-epitope information:
-        - candidate.peptide_mut  (str)  : mutated sequence
-        - candidate.peptide_wt   (str)  : wild-type sequence
-        - candidate.mut_pos_1based (int): mutation position
-        - candidate.gene         (str)  : source gene
-        - candidate.hla_allele   (str)  : target HLA allele
-
-    Returns
-    -------
-    tuple[str, float]
-        (score_name, score_value)
-    """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
-
-    # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
-
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    """Return the mutant-vs-wildtype delta binding score."""
+    pssm = _load_pssm()
+    score_wt = _pssm_score(candidate.peptide_wt, pssm)
+    score_mut = _pssm_score(candidate.peptide_mut, pssm)
+    delta = score_mut - score_wt
+    return (SCORE_NAME, delta)
