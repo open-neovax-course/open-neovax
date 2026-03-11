@@ -62,7 +62,7 @@ def _load_pssm() -> pd.DataFrame | None:
 
 def _normalize_peptide(peptide: object, pssm: pd.DataFrame | None) -> str | None:
     """Return a cleaned 9-mer peptide accepted by the PSSM, else None."""
-    if pssm is None or not isinstance(peptide, str):
+    if not isinstance(pssm, pd.DataFrame) or not isinstance(peptide, str):
         return None
 
     peptide = peptide.strip().upper()
