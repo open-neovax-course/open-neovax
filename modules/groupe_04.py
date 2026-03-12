@@ -1,4 +1,6 @@
-"""Group 04 scoring module."""
+"""Group 04 scoring module.
+Hypothesis: A mutant peptide is a better neoepitope candidate if the mutation improves, or at least preserves, HLA binding relative to the wild-type peptide. """
+
 
 from __future__ import annotations
 
