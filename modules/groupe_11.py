@@ -115,10 +115,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
-
-    # 2. Compute the score using your logic
+    # 1. Compute the score using your logic
     is_valid = _validate_mutation_in_window(
         candidate.peptide_wt,
         candidate.peptide_mut,
@@ -126,5 +123,5 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     )
     score_value = NEUTRAL_SCORE if is_valid else INVALID_PENALTY
 
-    # 3. Return the result in the expected format
+    # 2. Return the result in the expected format
     return (SCORE_NAME, score_value)
