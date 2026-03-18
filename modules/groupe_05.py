@@ -1,14 +1,7 @@
 """
-Template module — Open-NeoVax
+GROUPE 05 — Open-NeoVax
 =============================
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
-
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
 """
 
 from __future__ import annotations
