@@ -1,0 +1,58 @@
+# Groups & Module assignments
+
+## Groups
+
+| Group | Name | First name | GitHub | Branch |
+|-------|------|------------|--------|--------|
+| 01 | Lenglet | Thomas | LENGLETThomas | `groupe-01` |
+| 01 | Draguliescu | Alexandre | Kreton21 | |
+| 02 | Kharkov | Ivan | ivgap04 | `groupe-02` |
+| 02 | Mombellet | Guillaume | momgui | |
+| 03 | Riggi | Quentin | UentR | `groupe-03` |
+| 03 | Vial | Gustave | gunix91 | |
+| 04 | Korotenko | Yehoz | DobbiKov | `groupe-C4` |
+| 04 | Biscafe-Park | Lia | Liabiscafe | |
+| 05 | Balis | Aya | Ayou441 | `groupe-5` |
+| 05 | Gueye | Maram Sall | Maramgueye | |
+| 06 | Guo | Ziniu | ziniuGUO | — |
+| 06 | Khan | Adil | adilak1012 | |
+| 07 | Malak | Ifkharen | malakIf0 | `groupe-07` |
+| 07 | Guellal | Sofia | PyChic | |
+| 08 | Benrabh | Hanae | Jolinika | — |
+| 08 | Quach | Martine | LuuiChi | |
+| 08 | Ravelomanna | Charlotte | — | |
+| 09 | Bouazza | Zakaria | Zakaria-BOUAZZA | — |
+| 09 | Saighi | Achraf | — | |
+| 10 | Mattar | Mario | mmattar18 | — |
+| 10 | Azar | Elias | — | |
+| 11 | Al Masri | Reina | reina-m | `groupe-11` |
+| 11 | El Kassabby | Mahmoud | mkassaby | |
+| 12 | Chaffort | Lucas | LucasChaff | — |
+| 12 | Bouzada | Yacine | — | |
+| 12 | BA | Pape-Oumar | — | |
+
+## Module assignments
+
+| Group | Module | Description | Difficulty | Department |
+|-------|--------|-------------|:----------:|:----------:|
+| 01 | A3 | Complexity / Shannon entropy | ★★☆ | A |
+| 02 | C2 | Anchor P9 — PSSM lookup | ★★☆ | C |
+| 03 | C1 | Anchor P2 — PSSM lookup | ★★☆ | C |
+| 04 | C4 | Delta binding WT/MUT — PSSM comparison | ★★★ | C |
+| 05 | A4 | Delta WT vs MUT — property comparison | ★★☆ | A |
+| 06 | B1 | Proteasome — C-terminal cleavage preference | ★★☆ | B |
+| 07 | B2 | TAP — transport score (first 3 AA) | ★★☆ | B |
+| 08 | A1 | Hydrophobicity (Kyte-Doolittle) | ★☆☆ | A |
+| 09 | A2 | Net charge / pI | ★☆☆ | A |
+| 10 | B3 | ERAP — N-terminal trimming | ★★☆ | B |
+| 11 | D3 | Mutation in window | ★☆☆ | D |
+| 12 | D1 | Self exact match | ★☆☆ | D |
+
+## Department coverage
+
+| Department | Groups | Active modules |
+|------------|--------|----------------|
+| A — Peptide properties | 01, 05, 08, 09 | A1, A2, A3, A4 |
+| B — Processing | 06, 07, 10 | B1, B2, B3 |
+| C — HLA binding | 02, 03, 04 | C1, C2, C4 |
+| D — Self / safety | 11, 12 | D1, D3 |
