@@ -37,3 +37,4 @@ def test_get_score_returns_tuple():
 
     assert isinstance(result, tuple)
     assert len(result) == 2
+
