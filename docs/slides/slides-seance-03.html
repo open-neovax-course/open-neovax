@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open-NeoVax — Séance 3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-bright: #f8fafc;
+    --danger: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  h1 { font-size: 3.2rem; font-weight: 900; line-height: 1.15; margin-bottom: 1rem; }
+  h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--accent); }
+  h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  p, li { font-size: 1.35rem; line-height: 1.7; }
+  ul { list-style: none; padding-left: 0; }
+  ul li { padding: 0.35rem 0; padding-left: 1.8rem; position: relative; }
+  ul li::before { content: '\2192'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  code {
+    font-family: 'Fira Code', monospace;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+  pre {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 1rem 0;
+    color: var(--text);
+  }
+  .subtitle { font-size: 1.6rem; color: var(--text-dim); font-weight: 300; margin-bottom: 2rem; }
+  .highlight { color: var(--accent); }
+  .highlight2 { color: var(--accent2); }
+  .highlight3 { color: var(--accent3); }
+  .highlight4 { color: var(--accent4); }
+  .danger { color: var(--danger); }
+  .gold { color: var(--gold); }
+  .dim { color: var(--text-dim); }
+  strong { color: var(--text-bright); font-weight: 700; }
+  .big { font-size: 1.6rem; }
+  .small { font-size: 1.1rem; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; align-items: start; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .card h3 { margin-bottom: 0.8rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.2rem;
+  }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--accent3); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--accent4); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .badge-gold { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 1.15rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .slide-num {
+    position: fixed; bottom: 1.5rem; right: 2rem;
+    font-size: 0.9rem; color: var(--text-dim);
+    font-family: 'Fira Code', monospace;
+    z-index: 100;
+  }
+
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  .icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+
+  .section-title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .section-title h1 { font-size: 3.8rem; }
+  .section-number {
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--accent);
+    opacity: 0.15;
+    position: absolute;
+    top: 1rem; right: 3rem;
+  }
+
+  .code-good { border-left: 3px solid var(--accent3); }
+  .code-bad { border-left: 3px solid var(--danger); }
+  .code-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+
+<div class="deck" id="deck">
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 1 — TITLE             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <p class="subtitle" style="font-size:1.2rem; margin-bottom:0.5rem;">Bioinformatique L3 — Projet</p>
+  <h1>Open-NeoVax</h1>
+  <p class="subtitle">Séance 3 — Données externes</p>
+  <p style="margin-top:2rem; font-size:1.1rem;" class="dim">Charger les vrais fichiers de données et rendre votre score robuste</p>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 2 — AGENDA            -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Programme de la séance</h2>
+  <div class="cols">
+    <div>
+      <ul class="big">
+        <li><span class="highlight">Partie 1</span> — Les fichiers <code>data/</code></li>
+        <li><span class="highlight2">Partie 2</span> — Chargement robuste</li>
+        <li><span class="highlight3">Partie 3</span> — Par département : ce que vous faites aujourd'hui</li>
+        <li><span class="highlight4">Partie 4</span> — Implémentation (3h)</li>
+        <li><span class="danger">Partie 5</span> — Tests : 2 minimum</li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:center;">
+      <h3>Objectif de fin de séance</h3>
+      <p>Chaque groupe a :</p>
+      <ul class="small">
+        <li>Un score basé sur les <strong>vraies données</strong></li>
+        <li>Un chargement <strong>robuste</strong> (pas de crash)</li>
+        <li>Au moins <strong>2 tests</strong></li>
+        <li>Des scores qui <strong>discriminent</strong> les candidats</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — LES FICHIERS DATA      -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">1</span>
+  <h1>Les fichiers <code>data/</code></h1>
+  <p class="subtitle">Vos sources de données biologiques</p>
+</div>
+
+<!-- SLIDE — Vue d'ensemble data/ -->
+<div class="slide">
+  <h2>Contenu du dossier <code>data/</code></h2>
+  <table>
+    <tr>
+      <th>Fichier</th>
+      <th>Contenu</th>
+      <th>Utilisé par</th>
+    </tr>
+    <tr>
+      <td><code>hla_pssm_A0201.csv</code></td>
+      <td>Matrice PSSM : 20 AA x 9 positions, valeurs log-odds</td>
+      <td><span class="badge badge-green">C1</span> <span class="badge badge-green">C2</span> <span class="badge badge-green">C3</span> <span class="badge badge-green">C4</span></td>
+    </tr>
+    <tr>
+      <td><code>human_peptides_small.txt</code></td>
+      <td>500 peptides 9-mers humains (corpus "self")</td>
+      <td><span class="badge badge-orange">D1</span> <span class="badge badge-orange">D2</span></td>
+    </tr>
+    <tr>
+      <td><code>patient_zero.csv</code></td>
+      <td>18 candidats avec profils variés (test)</td>
+      <td><span class="badge badge-blue">Tous</span></td>
+    </tr>
+  </table>
+  <div class="card" style="margin-top:1.5rem;">
+    <p><strong>Depts A &amp; B</strong> : pas de fichier externe. Vos échelles et tables de préférence sont des <strong>constantes dans le code</strong> (dict Python).</p>
+  </div>
+</div>
+
+<!-- SLIDE — PSSM -->
+<div class="slide">
+  <h2>La PSSM <span class="dim small">— <code>hla_pssm_A0201.csv</code></span></h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">Matrice <strong>Position-Specific Scoring Matrix</strong> pour HLA-A*02:01 :</p>
+      <table style="font-size:0.95rem;">
+        <tr><th>AA</th><th>P1</th><th>P2</th><th>P3</th><th>...</th><th>P9</th></tr>
+        <tr><td><strong>L</strong></td><td>0.5</td><td class="highlight3"><strong>+2.0</strong></td><td>0.1</td><td>...</td><td>+1.5</td></tr>
+        <tr><td><strong>D</strong></td><td>-1.0</td><td class="danger"><strong>-2.5</strong></td><td>-0.5</td><td>...</td><td>-2.0</td></tr>
+        <tr><td><strong>V</strong></td><td>0.3</td><td>+1.0</td><td>0.2</td><td>...</td><td class="highlight3"><strong>+2.0</strong></td></tr>
+        <tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+      </table>
+      <ul class="small" style="margin-top:1rem;">
+        <li><strong>Positif</strong> = AA favorable à cette position</li>
+        <li><strong>Négatif</strong> = AA défavorable</li>
+        <li><strong>P2 et P9</strong> = positions d'ancrage (les plus importantes)</li>
+      </ul>
+    </div>
+    <div>
+      <span class="code-label highlight3">Comment la charger :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+import pandas as pd
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+df = pd.read_csv(DATA_DIR / "hla_pssm_A0201.csv")
+pssm = df.set_index("aa")
+
+<span class="dim"># Lire une valeur :</span>
+score = pssm.loc["L", "P2"]  <span class="dim"># 2.0</span>
+score = pssm.loc["D", "P2"]  <span class="dim"># -2.5</span>
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Corpus self -->
+<div class="slide">
+  <h2>Le corpus self <span class="dim small">— <code>human_peptides_small.txt</code></span></h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">500 peptides 9-mers humains normaux :</p>
+<pre style="font-size:1.1rem;">
+SLNRTFRLV
+YLQPRTFLL
+KLHLYSHPI
+ALWGPDPAA
+FLLTRILTI
+...
+<span class="dim">(500 lignes, un peptide par ligne)</span>
+</pre>
+      <div class="card small" style="margin-top:1rem; border-left:3px solid var(--accent4);">
+        <strong>CAND_14</strong> a pour peptide_mut <code>SLNRTFRLV</code> qui est dans ce corpus.
+        C'est un self-match exact — votre module D1 doit le détecter et retourner une pénalité.
+      </div>
+    </div>
+    <div>
+      <span class="code-label highlight4">Comment le charger :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+<span class="dim"># Charger en set (rapide pour le lookup)</span>
+with open(DATA_DIR / "human_peptides_small.txt") as f:
+    SELF_PEPTIDES = set(
+        line.strip() for line in f
+    )
+
+<span class="dim"># Vérifier :</span>
+"SLNRTFRLV" in SELF_PEPTIDES  <span class="dim"># True</span>
+"XYZXYZXYZ" in SELF_PEPTIDES  <span class="dim"># False</span>
+</pre>
+      <div class="card small" style="margin-top:1rem;">
+        <strong>set</strong>, pas list !<br>
+        <code>x in set</code> = O(1) instantané<br>
+        <code>x in list</code> = O(n) lent
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — CHARGEMENT ROBUSTE     -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">2</span>
+  <h1>Chargement robuste</h1>
+  <p class="subtitle">Ne jamais crasher, même si le fichier n'est pas là</p>
+</div>
+
+<!-- SLIDE — DATA_DIR -->
+<div class="slide">
+  <h2>Le pattern <code>DATA_DIR</code></h2>
+  <div class="cols">
+    <div>
+      <span class="code-label highlight3">Bien : chemin relatif au module</span>
+<pre class="code-good" style="font-size:1.05rem;">
+DATA_DIR = Path(__file__).resolve() \
+    .parent.parent / "data"
+
+path = DATA_DIR / "hla_pssm_A0201.csv"
+</pre>
+      <ul class="small" style="margin-top:1rem;">
+        <li>Fonctionne depuis n'importe quel dossier</li>
+        <li>Fonctionne sur le PC de n'importe qui</li>
+        <li>Fonctionne dans la CI GitHub</li>
+      </ul>
+    </div>
+    <div>
+      <span class="code-label danger">Mal : chemin absolu</span>
+<pre class="code-bad" style="font-size:1.05rem;">
+<span class="danger">path = "/home/thomas/open-neovax/data/hla_pssm_A0201.csv"</span>
+</pre>
+      <ul class="small" style="margin-top:1rem;">
+        <li class="danger">Fonctionne uniquement sur VOTRE machine</li>
+        <li class="danger">Crashe dans la CI</li>
+        <li class="danger">Crashe chez votre binôme</li>
+      </ul>
+      <span class="code-label danger" style="margin-top:1.5rem;">Mal aussi : chemin relatif au CWD</span>
+<pre class="code-bad" style="font-size:1.05rem;">
+<span class="danger">path = "data/hla_pssm_A0201.csv"</span>
+</pre>
+      <p class="small danger" style="margin-top:0.5rem;">Ne fonctionne que si on lance depuis la racine du projet.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Gestion d'erreur au chargement -->
+<div class="slide">
+  <h2>Gérer le fichier absent</h2>
+  <p style="margin-bottom:1rem;">Votre module ne doit <strong>jamais crasher</strong>, même si le fichier de données manque.</p>
+  <div class="cols">
+    <div>
+      <span class="code-label highlight3">Pattern recommandé :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+_PSSM = None
+
+def _load_pssm():
+    global _PSSM
+    if _PSSM is not None:
+        return _PSSM
+    path = DATA_DIR / "hla_pssm_A0201.csv"
+    if not path.exists():
+        return None  <span class="dim"># fichier absent</span>
+    df = pd.read_csv(path)
+    _PSSM = df.set_index("aa")
+    return _PSSM
+
+def get_score(candidate):
+    pssm = _load_pssm()
+    if pssm is None:
+        return ("C_hla_anchor_p2", 0.0)
+    <span class="dim"># ... calcul normal</span>
+</pre>
+    </div>
+    <div>
+      <div class="card" style="border-top:3px solid var(--accent);">
+        <h3 style="color:var(--accent);">Pourquoi ce pattern ?</h3>
+        <ul class="small">
+          <li><strong>Lazy loading</strong> : on ne charge qu'au premier appel</li>
+          <li><strong>Cache</strong> : la variable globale <code>_PSSM</code> évite de relire le CSV 18 fois (1 par candidat)</li>
+          <li><strong>Graceful fallback</strong> : si le fichier manque, on retourne un score neutre (0.0) au lieu de crasher</li>
+        </ul>
+      </div>
+      <div class="card small" style="margin-top:1rem; border-left:3px solid var(--gold);">
+        <strong>Même logique pour le corpus self :</strong><br>
+        Charger le set une seule fois, le stocker dans une variable globale, retourner 0.0 si le fichier est absent.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — PAR DÉPARTEMENT        -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">3</span>
+  <h1>Par département</h1>
+  <p class="subtitle">Ce que vous faites aujourd'hui</p>
+</div>
+
+<!-- SLIDE — Dept A -->
+<div class="slide">
+  <h2><span class="highlight">Dept A</span> — Propriétés physico-chimiques</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Pas de fichier externe. Vos échelles sont des constantes dans le code.</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Ce que vous codez aujourd'hui</th></tr>
+        <tr><td><strong>A1</strong></td><td>Échelle Kyte-Doolittle <strong>complète</strong> (20 AA), moyenne pondérée</td></tr>
+        <tr><td><strong>A2</strong></td><td>Charge nette : D,E = -1 / K,R = +1 / H = +0.5 (pH ~7)</td></tr>
+        <tr><td><strong>A3</strong></td><td>Entropie de Shannon sur la composition en AA</td></tr>
+        <tr><td><strong>A4</strong></td><td>Delta d'une propriété entre <code>peptide_wt</code> et <code>peptide_mut</code></td></tr>
+      </table>
+    </div>
+    <div>
+      <span class="code-label highlight">Rappel A1 — échelle complète :</span>
+<pre class="code-good" style="font-size:0.85rem;">
+KD_SCALE = {
+    "A":  1.8, "R": -4.5, "N": -3.5,
+    "D": -3.5, "C":  2.5, "Q": -3.5,
+    "E": -3.5, "G": -0.4, "H": -3.2,
+    "I":  4.5, "L":  3.8, "K": -3.9,
+    "M":  1.9, "F":  2.8, "P": -1.6,
+    "S": -0.8, "T": -0.7, "W": -0.9,
+    "Y": -1.3, "V":  4.2,
+}
+</pre>
+      <p class="small dim" style="margin-top:0.5rem;">Vérifiez que votre dict couvre les 20 AA standard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept B -->
+<div class="slide">
+  <h2><span class="highlight2">Dept B</span> — Processing &amp; présentation</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Tables de préférence pour le clivage et le transport. Constantes dans le code ou petit CSV.</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Ce que vous codez aujourd'hui</th></tr>
+        <tr><td><strong>B1</strong></td><td>Table de clivage protéasomal : score du dernier (et avant-dernier) AA</td></tr>
+        <tr><td><strong>B2</strong></td><td>Score TAP : basé sur les 3 premiers AA du peptide</td></tr>
+        <tr><td><strong>B3</strong></td><td>ERAP : résistance au trimming N-terminal (1er AA)</td></tr>
+        <tr><td><strong>B4</strong></td><td>Sanity : longueur 8-11, AA valides, WT != MUT</td></tr>
+      </table>
+    </div>
+    <div>
+      <span class="code-label highlight2">Exemple B1 — table de clivage :</span>
+<pre class="code-good" style="font-size:0.85rem;">
+<span class="dim"># AA favorables en C-terminal</span>
+<span class="dim"># pour le clivage protéasomal</span>
+CTERM_PREFERENCE = {
+    "L": 1.0, "A": 0.8, "V": 0.7,
+    "I": 0.7, "M": 0.6, "F": 0.5,
+    "K": 0.3, "R": 0.2,
+    "D": -0.5, "E": -0.5,
+    "P": -1.0,
+}
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    last_aa = pep[-1]
+    score = CTERM_PREFERENCE.get(
+        last_aa, 0.0)
+    return ("B_proteasome_cterm", score)
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept C -->
+<div class="slide">
+  <h2><span class="highlight3">Dept C</span> — Liaison HLA</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous utilisez <code>data/hla_pssm_A0201.csv</code> — chargement unique !</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Ce que vous codez aujourd'hui</th></tr>
+        <tr><td><strong>C1</strong></td><td>Score PSSM position P2</td></tr>
+        <tr><td><strong>C2</strong></td><td>Score PSSM position P9 (dernier AA)</td></tr>
+        <tr><td><strong>C3</strong></td><td>Somme PSSM sur les positions P3-P8</td></tr>
+        <tr><td><strong>C4</strong></td><td>Score PSSM total MUT - score PSSM total WT</td></tr>
+      </table>
+      <div class="card small" style="margin-top:1rem; border-left:3px solid var(--danger);">
+        <strong>Piège courant :</strong> recharger le CSV à chaque appel de <code>get_score</code>.<br>
+        18 candidats = 18 lectures du fichier.<br>
+        Utilisez le pattern lazy loading (slide précédente).
+      </div>
+    </div>
+    <div>
+      <span class="code-label highlight3">Vérification avec patient_zero :</span>
+      <div class="card" style="font-size:0.95rem;">
+        <table style="font-size:0.95rem;">
+          <tr><th>Candidat</th><th>P2</th><th>Score P2 attendu</th></tr>
+          <tr><td>CAND_01 <span class="dim">(GOLD)</span></td><td><strong>L</strong></td><td class="highlight3">~+2.0 (bon)</td></tr>
+          <tr><td>CAND_12 <span class="dim">(BAD)</span></td><td><strong>D</strong></td><td class="danger">~-2.5 (mauvais)</td></tr>
+          <tr><td>CAND_07</td><td><strong>V</strong></td><td>~+1.0 (moyen)</td></tr>
+        </table>
+        <p style="margin-top:0.8rem;" class="dim">Si CAND_01 a un score plus élevé que CAND_12, votre module fonctionne.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept D -->
+<div class="slide">
+  <h2><span class="highlight4">Dept D</span> — Sécurité &amp; soi</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous utilisez <code>data/human_peptides_small.txt</code> — chargement en <code>set</code> !</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Ce que vous codez aujourd'hui</th></tr>
+        <tr><td><strong>D1</strong></td><td>Exact match : <code>peptide_mut in SELF</code> ?</td></tr>
+        <tr><td><strong>D2</strong></td><td>Distance de Hamming minimale avec le corpus</td></tr>
+        <tr><td><strong>D3</strong></td><td><code>mut_pos_1based</code> dans la fenêtre ? WT != MUT ?</td></tr>
+      </table>
+      <div class="card small" style="margin-top:1rem;">
+        <span class="code-label highlight4">Candidats à vérifier :</span>
+        <table style="font-size:0.95rem;">
+          <tr><td><strong>CAND_14</strong></td><td><code>SLNRTFRLV</code> = self-match exact</td><td class="danger">D1 doit le pénaliser</td></tr>
+          <tr><td><strong>CAND_06</strong></td><td>WT == MUT</td><td class="danger">D3 doit le détecter</td></tr>
+          <tr><td><strong>CAND_18</strong></td><td>mut_pos = 12 (hors fenêtre)</td><td class="danger">D3 doit le signaler</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <span class="code-label highlight4">D2 — Distance de Hamming :</span>
+<pre class="code-good" style="font-size:0.85rem;">
+def _hamming(a, b):
+    """Nombre de positions différentes."""
+    return sum(c1 != c2 for c1, c2 in zip(a, b))
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    corpus = _load_self_peptides()
+    if corpus is None:
+        return ("D_self_approx_match", 0.0)
+
+    <span class="dim"># Distance min avec le corpus</span>
+    same_len = [p for p in corpus
+                if len(p) == len(pep)]
+    if not same_len:
+        return ("D_self_approx_match", 0.0)
+
+    min_dist = min(_hamming(pep, p)
+                   for p in same_len)
+    return ("D_self_approx_match",
+            float(min_dist))
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — IMPLÉMENTATION         -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">4</span>
+  <h1>Implémentation</h1>
+  <p class="subtitle">3h — Intégrez les vraies données</p>
+</div>
+
+<!-- SLIDE — Ce qui change par rapport à la séance 2 -->
+<div class="slide">
+  <h2>Séance 2 vs Séance 3</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--text-dim);">
+      <h3 style="color:var(--text-dim);">Séance 2 (score naïf)</h3>
+      <ul class="small">
+        <li>Valeurs en dur dans le code</li>
+        <li>Échelles partielles (2-3 AA)</li>
+        <li>Score simpliste (0 ou 1)</li>
+        <li>1 test minimum</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">Séance 3 (données externes)</h3>
+      <ul class="small">
+        <li>Données chargées depuis <code>data/</code></li>
+        <li>Échelles <strong>complètes</strong> (20 AA)</li>
+        <li>Score qui <strong>discrimine</strong> les candidats</li>
+        <li><strong>2 tests</strong> minimum</li>
+        <li>Chargement <strong>robuste</strong> (fallback si fichier absent)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; text-align:center;">
+    <p><strong>Test de succès :</strong> lancez <code>streamlit run app.py</code> — votre colonne de score ne doit plus afficher des 0 partout.<br>
+    <span class="dim">CAND_01 (GOLD) devrait avoir un meilleur score que CAND_12 (BAD).</span></p>
+  </div>
+</div>
+
+<!-- SLIDE — Checklist implémentation -->
+<div class="slide">
+  <h2>Checklist pendant le travail</h2>
+  <div class="cols-3">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <h3 style="color:var(--accent);">Depts A &amp; B</h3>
+      <ul class="small">
+        <li>Tables/échelles <strong>complètes</strong> (20 AA)</li>
+        <li>Gérer les AA inconnus (<code>.get(aa, 0.0)</code>)</li>
+        <li>Vérifier le signe du score</li>
+        <li>Pas de division par zéro</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">Dept C</h3>
+      <ul class="small">
+        <li>Charger la PSSM <strong>une seule fois</strong></li>
+        <li>Utiliser <code>DATA_DIR</code> (pas de chemin absolu)</li>
+        <li>Vérifier que <code>pssm.loc[aa, pos]</code> ne crashe pas sur un AA inconnu</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">Dept D</h3>
+      <ul class="small">
+        <li>Charger le corpus en <strong>set</strong></li>
+        <li>Charger <strong>une seule fois</strong></li>
+        <li>D2 : filtrer par longueur avant Hamming</li>
+        <li>D1 : CAND_14 doit retourner une pénalité</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — TESTS                  -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">5</span>
+  <h1>Tests : 2 minimum</h1>
+  <p class="subtitle">Un test nominal + un test sur candidat connu</p>
+</div>
+
+<!-- SLIDE — Les 2 tests à écrire -->
+<div class="slide">
+  <h2>Les 2 tests demandés</h2>
+  <div class="cols">
+    <div>
+      <span class="code-label highlight">Test 1 : format de retour</span>
+<pre class="code-good" style="font-size:0.95rem;">
+def test_returns_valid_tuple():
+    """get_score returns (str, float)."""
+    name, value = get_score(
+        _make_candidate()
+    )
+    assert isinstance(name, str)
+    assert isinstance(value, (int, float))
+    assert len(name) > 0
+</pre>
+      <p class="small dim" style="margin-top:0.5rem;">Vous l'avez probablement déjà depuis la séance 2.</p>
+    </div>
+    <div>
+      <span class="code-label highlight3">Test 2 : candidat connu</span>
+<pre class="code-good" style="font-size:0.95rem;">
+def test_known_candidate_score():
+    """Score on a known candidate is
+    in the expected range."""
+    <span class="dim"># CAND_01 : peptide_mut = "SLMAFTIAV"</span>
+    <span class="dim"># P2 = L → attendu : score élevé</span>
+    cand = _make_candidate(
+        peptide_mut="SLMAFTIAV"
+    )
+    name, value = get_score(cand)
+    assert value > 0  <span class="dim"># L@P2 = favorable</span>
+</pre>
+      <p class="small dim" style="margin-top:0.5rem;">Adaptez à votre module : vérifiez un candidat dont vous connaissez le résultat attendu.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; text-align:center;">
+    <p><strong>Séance 4 :</strong> on passera à <strong>3 tests minimum</strong> (nominal + edge case + input invalide).</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SLIDE — VÉRIFICATION FINALE      -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Avant de partir</h2>
+<pre style="font-size:1.3rem;">
+<span class="dim"># 1. Tests</span>
+pytest tests/test_groupe_XX.py -v
+
+<span class="dim"># 2. Style</span>
+ruff check modules/groupe_XX.py
+black modules/groupe_XX.py
+
+<span class="dim"># 3. Test visuel</span>
+streamlit run app.py
+<span class="dim"># → Vos scores ne sont plus à 0 ?</span>
+<span class="dim"># → CAND_01 > CAND_12 ?</span>
+
+<span class="dim"># 4. Commit &amp; push</span>
+git add modules/groupe_XX.py tests/test_groupe_XX.py
+git commit -m "feat: integrate real data"
+git push
+</pre>
+  <div class="card" style="margin-top:1.5rem; text-align:center;">
+    <p class="big">
+      <strong>Prochaine séance :</strong> robustesse (edge cases, candidats pièges) + intégration (merge + pipeline complet)
+    </p>
+  </div>
+</div>
+
+<!-- SLIDE — Récap -->
+<div class="slide">
+  <h2>Récap</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--text-bright);">Ce qu'on a vu</h3>
+      <ul>
+        <li>Les fichiers <code>data/</code> et qui les utilise</li>
+        <li>La PSSM : matrice 20 AA x 9 positions</li>
+        <li>Le corpus self : 500 peptides humains</li>
+        <li>Le pattern <code>DATA_DIR</code> + lazy loading</li>
+        <li>Chargement robuste (fallback si absent)</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--text-bright);">Les règles</h3>
+      <table style="font-size:1.05rem;">
+        <tr><td>Chemin</td><td><code>DATA_DIR</code> (jamais absolu)</td></tr>
+        <tr><td>Chargement</td><td>Une seule fois (variable globale)</td></tr>
+        <tr><td>Fichier absent</td><td>Score neutre (0.0), pas de crash</td></tr>
+        <tr><td>set vs list</td><td><code>set</code> pour le corpus self</td></tr>
+        <tr><td>Tests</td><td>2 minimum (format + candidat connu)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Questions -->
+<div class="slide section-title">
+  <h1>Questions ?</h1>
+  <p class="subtitle" style="margin-top:1rem;">
+    Docs modules : <code>docs/modules/</code><br>
+    Règles communes : <code>docs/common-rules.md</code>
+  </p>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const slideNum = document.getElementById('slideNum');
+  let current = 0;
+
+  function showSlide(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    slideNum.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); showSlide(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); showSlide(current - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? showSlide(current + 1) : showSlide(current - 1); }
+  });
+
+  showSlide(0);
+</script>
+</body>
+</html>
