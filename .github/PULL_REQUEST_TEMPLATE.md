@@ -1,9 +1,9 @@
 ## Group information
 
-- **Group**: <!-- e.g. Group 01 -->
-- **Members**: <!-- First Last, First Last -->
-- **Module**: <!-- e.g. A1 — Hydrophobicity -->
-- **Score name**: <!-- e.g. A_hydrophobicity_kd -->
+- **Group**: Group 11
+- **Members**: Mahmoud El Kassaby & Reina Al Masri
+- **Module**: D3
+- **Score name**: D_mutation in window
 
 ## Description
 
