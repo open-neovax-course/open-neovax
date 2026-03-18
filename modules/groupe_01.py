@@ -14,6 +14,7 @@ THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
 from __future__ import annotations
 
 from pathlib import Path
+import numpy as np
 from typing import TYPE_CHECKING
 
 # ──────────────────────────────────────────────────────────────────────
@@ -49,15 +50,26 @@ SCORE_NAME = "template_score"
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
+def _get_shannon(peptide: str) -> float:
     """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
+    Internal function that computes the Shannon Entropy of a given peptide
+    """
+    H = 0 
+    freq_dict = dict()
+    N = len(peptide)
+
+    for i in peptide:
+        if i in freq_dict.keys():
+            freq_dict[i] += 1
+        else:
+            freq_dict[i] = 1
+    
+    for char in freq_dict:
+        pi = freq_dict[char]/N
+        H += pi * np.log2(pi)
+    
+    Hmax = np.log2(N)
+    return -1 * H/Hmax
 
 
 # ══════════════════════════════════════════════════════════════════════
