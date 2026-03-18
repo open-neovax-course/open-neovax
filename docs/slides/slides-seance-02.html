@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open-NeoVax — Séance 2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-bright: #f8fafc;
+    --danger: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  h1 { font-size: 3.2rem; font-weight: 900; line-height: 1.15; margin-bottom: 1rem; }
+  h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--accent); }
+  h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  p, li { font-size: 1.35rem; line-height: 1.7; }
+  ul { list-style: none; padding-left: 0; }
+  ul li { padding: 0.35rem 0; padding-left: 1.8rem; position: relative; }
+  ul li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  code {
+    font-family: 'Fira Code', monospace;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+  pre {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 1rem 0;
+    color: var(--text);
+  }
+  .subtitle { font-size: 1.6rem; color: var(--text-dim); font-weight: 300; margin-bottom: 2rem; }
+  .highlight { color: var(--accent); }
+  .highlight2 { color: var(--accent2); }
+  .highlight3 { color: var(--accent3); }
+  .highlight4 { color: var(--accent4); }
+  .danger { color: var(--danger); }
+  .gold { color: var(--gold); }
+  .dim { color: var(--text-dim); }
+  strong { color: var(--text-bright); font-weight: 700; }
+  .big { font-size: 1.6rem; }
+  .small { font-size: 1.1rem; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; align-items: start; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .card h3 { margin-bottom: 0.8rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.2rem;
+  }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--accent3); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--accent4); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .badge-gold { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 1.15rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .slide-num {
+    position: fixed; bottom: 1.5rem; right: 2rem;
+    font-size: 0.9rem; color: var(--text-dim);
+    font-family: 'Fira Code', monospace;
+    z-index: 100;
+  }
+
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  .icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+
+  .section-title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .section-title h1 { font-size: 3.8rem; }
+  .section-number {
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--accent);
+    opacity: 0.15;
+    position: absolute;
+    top: 1rem; right: 3rem;
+  }
+
+  /* Code highlighting helpers */
+  .code-good { border-left: 3px solid var(--accent3); }
+  .code-bad { border-left: 3px solid var(--danger); }
+  .code-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+
+<div class="deck" id="deck">
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 1 — TITLE             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <p class="subtitle" style="font-size:1.2rem; margin-bottom:0.5rem;">Bioinformatique L3 — Projet</p>
+  <h1>Open-NeoVax</h1>
+  <p class="subtitle">Séance 2 — Score naïf</p>
+  <p style="margin-top:2rem; font-size:1.1rem;" class="dim">Votre première implémentation de <code>get_score</code></p>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 2 — AGENDA            -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Programme de la séance</h2>
+  <div class="cols">
+    <div>
+      <ul class="big">
+        <li><span class="highlight">Partie 1</span> — Le contrat <code>get_score</code></li>
+        <li><span class="highlight2">Partie 2</span> — Normalisation & nommage</li>
+        <li><span class="highlight3">Partie 3</span> — Par département : pistes pour le score naïf</li>
+        <li><span class="highlight4">Partie 4</span> — Implémentation (2h30)</li>
+        <li><span class="danger">Partie 5</span> — Premier test & vérification</li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:center;">
+      <h3>Objectif de fin de séance</h3>
+      <p>Chaque groupe a :</p>
+      <ul class="small">
+        <li>Un <code>get_score</code> qui retourne un vrai score</li>
+        <li>Au moins <strong>1 test</strong> qui passe</li>
+        <li>Un push + CI verte</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — LE CONTRAT             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">1</span>
+  <h1>Le contrat <code>get_score</code></h1>
+  <p class="subtitle">La seule fonction que le pipeline appelle</p>
+</div>
+
+<!-- SLIDE — Signature -->
+<div class="slide">
+  <h2>La signature</h2>
+<pre style="font-size:1.5rem;">
+def get_score(candidate: Candidate) -> <span class="highlight">tuple[str, float]</span>:
+    return ("score_name", 0.42)
+</pre>
+  <div class="cols" style="margin-top:2rem;">
+    <div class="card">
+      <h3>Entrée : <code>candidate</code></h3>
+      <table style="font-size:1.05rem;">
+        <tr><td><code>.peptide_mut</code></td><td>Séquence mutante</td></tr>
+        <tr><td><code>.peptide_wt</code></td><td>Séquence wild-type</td></tr>
+        <tr><td><code>.mut_pos_1based</code></td><td>Position de la mutation</td></tr>
+        <tr><td><code>.gene</code></td><td>Gène source</td></tr>
+        <tr><td><code>.hla_allele</code></td><td>Allèle HLA</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Sortie : <code>tuple[str, float]</code></h3>
+      <ul class="small">
+        <li><strong>str</strong> — nom unique de votre score</li>
+        <li><strong>float</strong> — valeur calculée</li>
+        <li>Pas de <code>NaN</code>, pas d'<code>inf</code></li>
+        <li>Pas de <code>None</code></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Ce qui se passe dans le pipeline -->
+<div class="slide">
+  <h2>Ce qui se passe quand le pipeline tourne</h2>
+  <div style="font-size:1.25rem; line-height:2.2; margin:1rem 0;">
+    <span class="badge badge-blue" style="font-size:1rem; padding:0.4rem 1rem;">1. Découverte</span>
+    Le pipeline scanne <code>modules/</code> et trouve votre fichier <code>groupe_XX.py</code><br>
+    <span class="badge badge-purple" style="font-size:1rem; padding:0.4rem 1rem;">2. Import</span>
+    Il importe votre module. Si l'import crashe → warning + module ignoré<br>
+    <span class="badge badge-green" style="font-size:1rem; padding:0.4rem 1rem;">3. Appel</span>
+    Pour chaque candidat, il appelle <code>get_score(candidate)</code><br>
+    <span class="badge badge-orange" style="font-size:1rem; padding:0.4rem 1rem;">4. Validation</span>
+    Il vérifie : tuple de 2 ? str + float ? pas NaN ? Sinon → warning + ignoré<br>
+    <span class="badge badge-gold" style="font-size:1rem; padding:0.4rem 1rem;">5. Stockage</span>
+    Le score est stocké dans <code>candidate.scores["votre_nom"]</code>
+  </div>
+  <div class="card" style="text-align:center; margin-top:1rem;">
+    <p><strong>Votre module ne peut pas crasher le pipeline.</strong> Le pire qui arrive : un warning et votre score est ignoré.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — NORMALISATION          -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">2</span>
+  <h1>Normalisation & nommage</h1>
+  <p class="subtitle">Les règles du jeu</p>
+</div>
+
+<!-- SLIDE — Normalisation -->
+<div class="slide">
+  <h2>La normalisation : on s'en occupe</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1.5rem;">Le core applique une <strong>normalisation min-max</strong> sur chaque score :</p>
+<pre style="font-size:1.1rem;">
+score_norm = (score - min) / (max - min)
+
+→ Résultat toujours entre <span class="highlight3">0</span> et <span class="highlight3">1</span>
+</pre>
+      <ul class="small" style="margin-top:1rem;">
+        <li>Pas besoin de normaliser vous-mêmes</li>
+        <li>Vos scores bruts peuvent être dans n'importe quelle plage</li>
+        <li>Si tous les candidats ont le même score → 0.5</li>
+      </ul>
+    </div>
+    <div class="card" style="border:2px solid var(--danger);">
+      <h3 style="color:var(--danger);">Attention au signe !</h3>
+      <p class="small" style="margin-bottom:1rem;">Après normalisation, <strong>1 = le meilleur, 0 = le pire</strong>.</p>
+      <p class="small">Donc un score <strong>élevé</strong> doit signifier <strong>"bon candidat"</strong>.</p>
+      <div style="margin-top:1rem; font-size:1.05rem;">
+        <p><span class="highlight3">Hydrophobicité équilibrée → score élevé</span></p>
+        <p><span class="danger">Self-match trouvé → score négatif (pénalité)</span></p>
+        <p><span class="danger">Ancre P2 = D → score négatif (pire ancre)</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Nommage -->
+<div class="slide">
+  <h2>Nommage du score</h2>
+  <p style="margin-bottom:1.5rem;">Convention : <code>&lt;département&gt;_&lt;concept&gt;[_détail]</code></p>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent3);">Bons noms</h3>
+      <table style="font-size:1.05rem;">
+        <tr><td><code>A_hydrophobicity_kd</code></td><td class="dim">Dept A, Kyte-Doolittle</td></tr>
+        <tr><td><code>A_net_charge</code></td><td class="dim">Dept A, charge nette</td></tr>
+        <tr><td><code>B_proteasome_cterm</code></td><td class="dim">Dept B, C-terminal</td></tr>
+        <tr><td><code>C_hla_anchor_p2</code></td><td class="dim">Dept C, ancre position 2</td></tr>
+        <tr><td><code>D_self_exact_match</code></td><td class="dim">Dept D, match exact</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3 style="color:var(--danger);">Mauvais noms</h3>
+      <table style="font-size:1.05rem;">
+        <tr><td><code>score</code></td><td class="danger">Trop vague</td></tr>
+        <tr><td><code>my_score</code></td><td class="danger">Non descriptif</td></tr>
+        <tr><td><code>result</code></td><td class="danger">Rien à voir</td></tr>
+        <tr><td><code>hydro</code></td><td class="danger">Pas le département</td></tr>
+      </table>
+      <div class="card small" style="margin-top:1rem; border-left:3px solid var(--danger);">
+        Si deux modules retournent le <strong>même nom</strong> → écrasement silencieux. Le dernier gagne.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — PAR DÉPARTEMENT        -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">3</span>
+  <h1>Par département</h1>
+  <p class="subtitle">Pistes pour votre score naïf</p>
+</div>
+
+<!-- SLIDE — Dept A -->
+<div class="slide">
+  <h2><span class="highlight">Dept A</span> — Propriétés physico-chimiques</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous travaillez directement sur la séquence <code>candidate.peptide_mut</code></p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Score naïf</th></tr>
+        <tr><td><strong>A1</strong></td><td>Moyenne Kyte-Doolittle sur le peptide</td></tr>
+        <tr><td><strong>A2</strong></td><td>Compter D, E (−) et K, R, H (+)</td></tr>
+        <tr><td><strong>A3</strong></td><td>Entropie de Shannon sur la composition AA</td></tr>
+        <tr><td><strong>A4</strong></td><td>Diff. d'une propriété entre WT et MUT</td></tr>
+      </table>
+    </div>
+    <div>
+      <span class="code-label highlight">Exemple A1 :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+KD = {"A": 1.8, "R": -4.5,
+      "N": -3.5, "D": -3.5,
+      "I": 4.5, "L": 3.8,
+      "V": 4.2, "M": 1.9, ...}
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    avg = sum(KD.get(aa, 0.0)
+              for aa in pep) / len(pep)
+    return ("A_hydrophobicity_kd", avg)
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept B -->
+<div class="slide">
+  <h2><span class="highlight2">Dept B</span> — Processing & présentation</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous modélisez les étapes intracellulaires (protéasome, TAP, ERAP)</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Score naïf</th></tr>
+        <tr><td><strong>B1</strong></td><td>Dernier AA du peptide : favorable ou pas ? (table de lookup)</td></tr>
+        <tr><td><strong>B2</strong></td><td>Score basé sur le C-terminal + composition globale</td></tr>
+        <tr><td><strong>B3</strong></td><td>Premier AA du peptide : résistant au trimming ?</td></tr>
+        <tr><td><strong>B4</strong></td><td>Longueur OK ? Caractères valides ? WT ≠ MUT ?</td></tr>
+      </table>
+    </div>
+    <div>
+      <span class="code-label highlight2">Exemple B4 :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    score = 1.0  <span class="dim"># on part de 1 (OK)</span>
+
+    if not (8 <= len(pep) <= 11):
+        score -= 0.5
+    if not all(aa in VALID_AA for aa in pep):
+        score -= 0.5
+
+    return ("B_sanity_check", score)
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept C -->
+<div class="slide">
+  <h2><span class="highlight3">Dept C</span> — Liaison HLA</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous utilisez la matrice PSSM (<code>data/hla_pssm_A0201.csv</code>)</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Score naïf</th></tr>
+        <tr><td><strong>C1</strong></td><td>Valeur PSSM à la position P2</td></tr>
+        <tr><td><strong>C2</strong></td><td>Valeur PSSM à la position P9 (dernière)</td></tr>
+        <tr><td><strong>C3</strong></td><td>Somme PSSM sur toutes les positions</td></tr>
+        <tr><td><strong>C4</strong></td><td>Score PSSM(MUT) − Score PSSM(WT)</td></tr>
+      </table>
+      <div class="card small" style="margin-top:1rem;">
+        <strong>La PSSM</strong> : matrice 20 AA × 9 positions.<br>
+        Chaque case = score log-odds.<br>
+        Positif = favorable, négatif = défavorable.
+      </div>
+    </div>
+    <div>
+      <span class="code-label highlight3">Exemple C1 :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+<span class="dim"># Charger la PSSM (version naïve)</span>
+import pandas as pd
+pssm = pd.read_csv(DATA_DIR / "hla_pssm_A0201.csv",
+                    index_col="aa")
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    p2_aa = pep[1]  <span class="dim"># P2 = index 1</span>
+    score = pssm.loc[p2_aa, "P2"]
+    return ("C_hla_anchor_p2", score)
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Dept D -->
+<div class="slide">
+  <h2><span class="highlight4">Dept D</span> — Sécurité & soi</h2>
+  <p class="dim small" style="margin-bottom:1rem;">Vous comparez avec le corpus self (<code>data/human_peptides_small.txt</code>)</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1rem;">
+        <tr><th>Module</th><th>Score naïf</th></tr>
+        <tr><td><strong>D1</strong></td><td>Le peptide MUT est-il dans le corpus ? Oui → grosse pénalité</td></tr>
+        <tr><td><strong>D2</strong></td><td>Distance de Hamming minimale avec le corpus</td></tr>
+        <tr><td><strong>D3</strong></td><td><code>mut_pos</code> dans [1, len(pep)] ? WT ≠ MUT ?</td></tr>
+      </table>
+    </div>
+    <div>
+      <span class="code-label highlight4">Exemple D1 :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+<span class="dim"># Charger le corpus self</span>
+with open(DATA_DIR / "human_peptides_small.txt") as f:
+    SELF = set(line.strip() for line in f)
+
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    if pep in SELF:
+        return ("D_self_exact_match", -10.0)
+    return ("D_self_exact_match", 0.0)
+</pre>
+      <p class="dim small" style="margin-top:0.5rem;">Score négatif = pénalité.<br>Après normalisation, self-match → score 0.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — IMPLÉMENTATION         -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">4</span>
+  <h1>Implémentation</h1>
+  <p class="subtitle">2h30 — À vous de jouer !</p>
+</div>
+
+<!-- SLIDE — Le template -->
+<div class="slide">
+  <h2>Partir du template</h2>
+  <p style="margin-bottom:1rem;">Votre fichier <code>modules/groupe_XX.py</code> a déjà la bonne structure :</p>
+<pre style="font-size:1.05rem;">
+<span class="dim"># ══════════════════════════════════════</span>
+<span class="dim">#  CONSTANTES</span>
+<span class="dim"># ══════════════════════════════════════</span>
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+SCORE_NAME = <span class="danger">"template_score"</span>  <span class="dim">← à changer !</span>
+
+
+<span class="dim"># ══════════════════════════════════════</span>
+<span class="dim">#  FONCTIONS INTERNES (privées)</span>
+<span class="dim"># ══════════════════════════════════════</span>
+def _compute_something(peptide: str) -> float:
+    ...  <span class="dim">← votre logique ici</span>
+
+
+<span class="dim"># ══════════════════════════════════════</span>
+<span class="dim">#  FONCTION PUBLIQUE</span>
+<span class="dim"># ══════════════════════════════════════</span>
+def get_score(candidate: "Candidate") -> tuple[str, float]:
+    peptide = candidate.peptide_mut
+    score_value = _compute_something(peptide)
+    return (SCORE_NAME, score_value)
+</pre>
+</div>
+
+<!-- SLIDE — Checklist d'implémentation -->
+<div class="slide">
+  <h2>Checklist pendant l'implémentation</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">À faire</h3>
+      <ul>
+        <li>Changer <code>SCORE_NAME</code> (convention <code>dept_concept</code>)</li>
+        <li>Écrire votre logique dans <code>_compute_something</code></li>
+        <li>Tester manuellement avec Streamlit</li>
+        <li>Vérifier le signe : élevé = bon candidat</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--danger);">
+      <h3 style="color:var(--danger);">Erreurs fréquentes</h3>
+      <ul>
+        <li>Oublier de changer <code>SCORE_NAME</code></li>
+        <li>Diviser par <code>len(pep)</code> quand <code>pep = ""</code></li>
+        <li>Score inversé (self-match → score positif)</li>
+        <li>Crash sur un AA inconnu (X, *)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; text-align:center;">
+    <p>Pour tester en live : <code>streamlit run app.py</code> → cochez "Demo file" → "Run analysis"<br>
+    <span class="dim">Vous devriez voir votre colonne de score apparaître !</span></p>
+  </div>
+</div>
+
+<!-- SLIDE — Bon vs mauvais code -->
+<div class="slide">
+  <h2>Bon code vs. mauvais code</h2>
+  <div class="cols">
+    <div>
+      <span class="code-label danger">Mauvais :</span>
+<pre class="code-bad" style="font-size:0.95rem;">
+def get_score(candidate):
+    p = candidate.peptide_mut
+    s = 0
+    for i in range(len(p)):
+        if p[i] == "L":
+            s += 2
+        elif p[i] == "V":
+            s += 1.5
+    return ("score", s)
+</pre>
+      <ul class="small" style="margin-top:0.5rem;">
+        <li class="danger">Nom <code>"score"</code> non descriptif</li>
+        <li class="danger">Magic numbers (2, 1.5)</li>
+        <li class="danger">Variables cryptiques (p, s, i)</li>
+      </ul>
+    </div>
+    <div>
+      <span class="code-label highlight3">Bon :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+SCORE_NAME = "C_hla_anchor_p2"
+ANCHOR_SCORES = {"L": 2.0, "M": 1.5,
+                 "V": 1.0, "A": -0.5}
+DEFAULT_SCORE = -1.0
+
+def get_score(candidate):
+    peptide = candidate.peptide_mut
+    p2_aa = peptide[1]
+    score = ANCHOR_SCORES.get(
+        p2_aa, DEFAULT_SCORE)
+    return (SCORE_NAME, score)
+</pre>
+      <ul class="small" style="margin-top:0.5rem;">
+        <li class="highlight3">Nom explicite</li>
+        <li class="highlight3">Constantes nommées</li>
+        <li class="highlight3">Variables lisibles</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — TESTS                  -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">5</span>
+  <h1>Premier test</h1>
+  <p class="subtitle">Vérifier que ça marche (et que ça marchera demain)</p>
+</div>
+
+<!-- SLIDE — Écrire un test -->
+<div class="slide">
+  <h2>Votre premier test</h2>
+  <p style="margin-bottom:1rem;">Créez <code>tests/test_groupe_XX.py</code> :</p>
+<pre style="font-size:1.15rem;">
+from logic.types import Candidate
+from modules.groupe_XX import get_score
+
+
+def _make_candidate(peptide_mut="SLMAFTIAV"):
+    return Candidate(
+        candidate_id="TEST",
+        peptide_wt="SSMAFTIAV",
+        peptide_mut=peptide_mut,
+        mut_pos_1based=2,
+    )
+
+
+def test_returns_valid_tuple():
+    <span class="dim">"""get_score returns a (str, float) tuple."""</span>
+    name, value = get_score(_make_candidate())
+    assert isinstance(name, str)
+    assert isinstance(value, float)
+    assert len(name) > 0
+</pre>
+</div>
+
+<!-- SLIDE — Pourquoi tester -->
+<div class="slide">
+  <h2>Pourquoi écrire des tests ?</h2>
+  <div class="cols-3">
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent);">
+      <span class="icon">🛡️</span>
+      <h3 style="color:var(--accent);">Sécurité</h3>
+      <p class="small">Vous modifiez votre code → les tests vérifient que rien n'est cassé</p>
+    </div>
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent2);">
+      <span class="icon">📋</span>
+      <h3 style="color:var(--accent2);">Documentation</h3>
+      <p class="small">Un test montre <strong>comment</strong> votre fonction est censée être utilisée</p>
+    </div>
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent3);">
+      <span class="icon">🤖</span>
+      <h3 style="color:var(--accent3);">CI automatique</h3>
+      <p class="small">Vos tests tournent à chaque push — la CI vous protège</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:2rem;">
+    <p style="text-align:center;">
+      Aujourd'hui : <strong>1 test minimum</strong>. En séance 4 : <strong>3 tests minimum</strong> (nominal + edge case + invalid).
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SLIDE — VÉRIFICATION FINALE      -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Avant de partir</h2>
+<pre style="font-size:1.3rem;">
+<span class="dim"># 1. Vérifier que le test passe</span>
+pytest tests/test_groupe_XX.py -v
+
+<span class="dim"># 2. Vérifier le style</span>
+ruff check modules/groupe_XX.py
+black modules/groupe_XX.py
+
+<span class="dim"># 3. Commiter et pousser</span>
+git add modules/groupe_XX.py tests/test_groupe_XX.py
+git commit -m "feat: naive score implementation"
+git push
+
+<span class="dim"># 4. Vérifier la CI sur GitHub</span>
+<span class="dim"># → votre PR doit être verte</span>
+</pre>
+  <div class="card" style="margin-top:1.5rem; text-align:center;">
+    <p class="big">
+      <strong>Prochaine séance :</strong> données externes (PSSM, corpus self, tables de lookup) + robustesse
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SLIDE — RÉCAP                    -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Récap</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--text-bright);">Ce qu'on a vu</h3>
+      <ul>
+        <li>Le contrat <code>get_score</code> : <code>tuple[str, float]</code></li>
+        <li>La normalisation min-max (faite par le core)</li>
+        <li>La convention de nommage <code>dept_concept</code></li>
+        <li>Score élevé = bon candidat</li>
+        <li>Comment écrire un test</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--text-bright);">À retenir</h3>
+      <table style="font-size:1.05rem;">
+        <tr><th>Règle</th><th></th></tr>
+        <tr><td>Nom unique</td><td><code>dept_concept</code></td></tr>
+        <tr><td>Signe</td><td>élevé = bon</td></tr>
+        <tr><td>Pas de crash</td><td>même sur input bizarre</td></tr>
+        <tr><td>Pas de NaN/inf</td><td>toujours un float fini</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Questions -->
+<div class="slide section-title">
+  <h1>Questions ?</h1>
+  <p class="subtitle" style="margin-top:1rem;">
+    Docs modules : <code>docs/modules/</code><br>
+    Règles communes : <code>docs/common-rules.md</code>
+  </p>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const slideNum = document.getElementById('slideNum');
+  let current = 0;
+
+  function showSlide(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    slideNum.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); showSlide(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); showSlide(current - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? showSlide(current + 1) : showSlide(current - 1); }
+  });
+
+  showSlide(0);
+</script>
+</body>
+</html>
