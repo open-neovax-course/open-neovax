@@ -1,4 +1,4 @@
-"""Tests for the C2 module."""
+"""Tests for the C1 module."""
 
 from __future__ import annotations
 
