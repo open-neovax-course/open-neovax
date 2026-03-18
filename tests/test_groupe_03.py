@@ -1,4 +1,4 @@
-"""Tests for the C2 module."""
+"""Tests for the C1 module."""
 
 from __future__ import annotations
 
@@ -98,3 +98,4 @@ def test_missing_pssm_file(mock_exists):
     )
     _, value = get_score(candidate)
     assert value == 0.0
+    _get_pssm_matrix.cache_clear()
