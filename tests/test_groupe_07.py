@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+import math
+
+from logic.types import Candidate
+from modules.groupe_07 import get_score
+
 """Tests for the template module."""
 
-from __future__ import annotations
 
 import math
 
