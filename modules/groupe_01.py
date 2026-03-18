@@ -38,7 +38,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "template_score"
+SCORE_NAME = "complexity_score"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -110,19 +110,19 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     peptide = candidate.peptide_mut
 
     if not isinstance(peptide, str) or not peptide:
-        return 0.0
+        return (SCORE_NAME, 0)
         
     peptide = peptide.upper()
     N = len(peptide)
     
     if N < 8 or N > 11:
-        return 0.0 
+        return (SCORE_NAME, 0)
         
     valid_aa = set("ACDEFGHIKLMNPQRSTVWY")
     for aa in peptide:
         if aa not in valid_aa:
-            return 0.0
-
+            return (SCORE_NAME, 0)
+        
     # 2. Compute the score using your logic
     score_value = _get_shannon(peptide)
 
