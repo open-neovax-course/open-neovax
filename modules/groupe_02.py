@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 from typing import TYPE_CHECKING
+
 import pandas as pd
 
 # ──────────────────────────────────────────────────────────────────────
@@ -57,7 +58,8 @@ _PSSM_P9: dict[str, float] | None
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
-def _load_pssm() -> dict[str, float] | None :
+
+def _load_pssm() -> dict[str, float] | None:
     """Loading pssm and extracting P9
 
     Returns dict with {amino_acid: P9 score} or Non
@@ -89,28 +91,30 @@ def _load_pssm() -> dict[str, float] | None :
             continue
 
         ## Check if the value is finite(no inf or nan)
-        if not math.isfinite(value): 
+        if not math.isfinite(value):
             continue
 
         p9_scores[aa] = value
 
     return p9_scores or None
 
+
 ## Loaded values of P9 for each amino acid
 _PSSM_P9 = _load_pssm()
 
+
 def _valid_peptide(peptide: str) -> bool:
-    """ Return true is peptide is valid for our module
-        It is a str, length is 9, last amino acid is valid
+    """Return true is peptide is valid for our module
+    It is a str, length is 9, last amino acid is valid
     """
     if not isinstance(peptide, str):
         return False
-    
+
     peptide = peptide.strip().upper()
 
     if len(peptide) != 9:
         return False
-    
+
     ## last aa is valid
     return peptide[-1] in _VALID_AA
 
@@ -125,9 +129,9 @@ def _compute_P9_score(peptide: str) -> float:
 
     if _PSSM_P9 is None:
         return NEUTRAL_SCORE
-    
+
     aa = peptide.strip().upper()[-1]
-    
+
     return float(_PSSM_P9.get(aa, NEUTRAL_SCORE))
 
 
