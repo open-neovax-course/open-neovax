@@ -38,6 +38,7 @@
 | 01 | A3 | Complexity / Shannon entropy | ★★☆ | A |
 | 02 | C2 | Anchor P9 — PSSM lookup | ★★☆ | C |
 | 03 | C1 | Anchor P2 — PSSM lookup | ★★☆ | C |
+| 03 | C3 | Secondary anchors — multi-position PSSM | ★★★ | C |
 | 04 | C4 | Delta binding WT/MUT — PSSM comparison | ★★★ | C |
 | 05 | A4 | Delta WT vs MUT — property comparison | ★★☆ | A |
 | 06 | B1 | Proteasome — C-terminal cleavage preference | ★★☆ | B |
@@ -54,5 +55,5 @@
 |------------|--------|----------------|
 | A — Peptide properties | 01, 05, 08, 09 | A1, A2, A3, A4 |
 | B — Processing | 06, 07, 10 | B1, B2, B3 |
-| C — HLA binding | 02, 03, 04 | C1, C2, C4 |
+| C — HLA binding | 02, 03, 04 | C1, C2, C3, C4 |
 | D — Self / safety | 11, 12 | D1, D3 |
