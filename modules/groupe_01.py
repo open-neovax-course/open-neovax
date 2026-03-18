@@ -100,7 +100,6 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-import numpy as np
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 from logic.types import Candidate
-from modules.template_module import get_score
+from modules.groupe_01 import get_score
 
 
 def _make_candidate() -> Candidate:
