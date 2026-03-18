@@ -53,15 +53,38 @@ INVALID_PENALTY = -1000.0
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
+def _validate_mutation_in_window(
+    peptide_wt: str, peptide_mut: str, mut_pos_1based: int
+) -> bool:
+    """Return True when WT/MUT sequences and declared position are consistent."""
 
-    Replace this computation with your biological logic.
-    """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
+    # WT must be a non-empty string.
+    if not isinstance(peptide_wt, str) or not peptide_wt:
+        return False
+
+    # MUT must be a non-empty string.
+    if not isinstance(peptide_mut, str) or not peptide_mut:
+        return False
+
+    # WT and MUT must describe the same peptide window length.
+    if len(peptide_wt) != len(peptide_mut):
+        return False
+
+    # Mutation position must be an integer.
+    if not isinstance(mut_pos_1based, int):
+        return False
+
+    # Position is 1-based and must fall inside the peptide.
+    if mut_pos_1based < 1 or mut_pos_1based > len(peptide_mut):
+        return False
+
+    # If WT and MUT are identical, there is no mutation.
+    if peptide_wt == peptide_mut:
+        return False
+
+    # Declared mutation position must contain a residue change.
+    index = mut_pos_1based - 1
+    return peptide_wt[index] != peptide_mut[index]
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -96,7 +119,12 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     peptide = candidate.peptide_mut
 
     # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    is_valid = _validate_mutation_in_window(
+        candidate.peptide_wt,
+        candidate.peptide_mut,
+        candidate.mut_pos_1based
+    )
+    score_value = NEUTRAL_SCORE if is_valid else INVALID_PENALTY
 
     # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
