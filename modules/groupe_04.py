@@ -91,6 +91,13 @@ def _pssm_score(peptide: str, pssm: pd.DataFrame) -> float:
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  LOCAL CACHE
+# ══════════════════════════════════════════════════════════════════════
+
+_PSSM = _load_pssm()
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
 
@@ -100,7 +107,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
 
     Falls back to a neutral score of 0.0 when inputs or PSSM data are invalid.
     """
-    pssm = _load_pssm()
+    pssm = _PSSM
     peptide_wt = _normalize_peptide(getattr(candidate, "peptide_wt", None), pssm)
     peptide_mut = _normalize_peptide(getattr(candidate, "peptide_mut", None), pssm)
     if pssm is None or peptide_wt is None or peptide_mut is None:
