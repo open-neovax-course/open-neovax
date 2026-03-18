@@ -30,7 +30,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "a4_delta_wt_vs_mut"
+SCORE_NAME = "A_delta_wt_vs_mut"
 
 
 # ══════════════════════════════════════════════════════════════════════
