@@ -1,10 +1,11 @@
+"""Tests for the groupe_01 module (Shannon Entropy / Sequence Complexity)."""
+
 from __future__ import annotations
 
-import math
 import pytest
 
 from logic.types import Candidate
-from modules.groupe_01 import get_score, SCORE_NAME
+from modules.groupe_01 import SCORE_NAME, get_score
 
 
 def _make_candidate(peptide_mut: str = "SLMAFTIAV") -> Candidate:
@@ -16,7 +17,9 @@ def _make_candidate(peptide_mut: str = "SLMAFTIAV") -> Candidate:
         mut_pos_1based=5,
     )
 
+
 # ── Nominal Tests ───────────────────────────────────────────────────
+
 
 def test_nominal_standard_peptide():
     """Test with a standard 9-mer peptide (nominal case)."""
@@ -24,6 +27,7 @@ def test_nominal_standard_peptide():
     assert name == SCORE_NAME
     assert isinstance(value, float)
     assert 0.0 < value <= 1.0  # Entropy should be between 0 and 1
+
 
 def test_nominal_extreme_entropy():
     """Test the bounds of the Shannon entropy calculation."""
@@ -36,7 +40,9 @@ def test_nominal_extreme_entropy():
     _, val_max = get_score(_make_candidate("ACDEFGHIK"))
     assert val_max == pytest.approx(1.0, abs=1e-5)
 
+
 # ── Edge-Case Tests ─────────────────────────────────────────────────
+
 
 def test_edge_case_length_bounds():
     """Test lengths exactly at the boundaries (8 and 11) and outside."""
@@ -47,10 +53,11 @@ def test_edge_case_length_bounds():
     assert val_11 > 0.0
 
     # Invalid lengths (should return 0.0 penalty)
-    _, val_short = get_score(_make_candidate("ACDEFGH")) # length 7
+    _, val_short = get_score(_make_candidate("ACDEFGH"))  # length 7
     assert val_short == 0.0
-    _, val_long = get_score(_make_candidate("ACDEFGHIKLMN")) # length 12
+    _, val_long = get_score(_make_candidate("ACDEFGHIKLMN"))  # length 12
     assert val_long == 0.0
+
 
 def test_edge_case_case_insensitivity():
     """Test that the module handles lowercase letters gracefully."""
@@ -58,20 +65,24 @@ def test_edge_case_case_insensitivity():
     _, val_lower = get_score(_make_candidate("slmaftiav"))
     assert val_upper == val_lower
 
+
 # ── Invalid-Input Tests ─────────────────────────────────────────────
+
 
 def test_invalid_input_characters():
     """Test peptides containing invalid amino acids (e.g., X, *)."""
     _, value_x = get_score(_make_candidate("SLXMAFTIA"))
     assert value_x == 0.0
-    
+
     _, value_star = get_score(_make_candidate("SL*MAFTIA"))
     assert value_star == 0.0
+
 
 def test_invalid_input_empty():
     """Test with an empty peptide string."""
     _, value = get_score(_make_candidate(""))
     assert value == 0.0
+
 
 def test_invalid_input_none():
     """Test with a None type instead of a string."""
