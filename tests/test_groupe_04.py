@@ -68,10 +68,7 @@ def test_missing_candidate_attribute_returns_neutral_score():
 
 
 def test_missing_pssm_file_returns_neutral_score(monkeypatch):
-    def _raise_read_csv(*args, **kwargs):
-        raise FileNotFoundError("missing pssm")
-
-    monkeypatch.setattr(groupe_04.pd, "read_csv", _raise_read_csv)
+    monkeypatch.setattr(groupe_04, "_PSSM", None)
 
     name, value = groupe_04.get_score(_make_candidate())
 
@@ -85,7 +82,7 @@ def test_malformed_pssm_values_return_neutral_score(monkeypatch):
         index=["A", "V"],
     )
 
-    monkeypatch.setattr(groupe_04, "_load_pssm", lambda: malformed)
+    monkeypatch.setattr(groupe_04, "_PSSM", malformed)
 
     name, value = groupe_04.get_score(_make_candidate())
 
@@ -96,7 +93,7 @@ def test_malformed_pssm_values_return_neutral_score(monkeypatch):
 def test_missing_pssm_columns_return_neutral_score(monkeypatch):
     missing_columns = pd.DataFrame({"P1": [1.0], "P2": [2.0]}, index=["A"])
 
-    monkeypatch.setattr(groupe_04, "_load_pssm", lambda: missing_columns)
+    monkeypatch.setattr(groupe_04, "_PSSM", missing_columns)
 
     name, value = groupe_04.get_score(_make_candidate())
 
@@ -105,7 +102,7 @@ def test_missing_pssm_columns_return_neutral_score(monkeypatch):
 
 
 def test_empty_pssm_returns_neutral_score(monkeypatch):
-    monkeypatch.setattr(groupe_04, "_load_pssm", lambda: pd.DataFrame())
+    monkeypatch.setattr(groupe_04, "_PSSM", pd.DataFrame())
 
     name, value = groupe_04.get_score(_make_candidate())
 
@@ -119,7 +116,7 @@ def test_duplicate_pssm_index_returns_neutral_score(monkeypatch):
         index=["A", "A"],
     )
 
-    monkeypatch.setattr(groupe_04, "_load_pssm", lambda: duplicate_index)
+    monkeypatch.setattr(groupe_04, "_PSSM", duplicate_index)
 
     name, value = groupe_04.get_score(_make_candidate())
 
@@ -128,7 +125,7 @@ def test_duplicate_pssm_index_returns_neutral_score(monkeypatch):
 
 
 def test_non_dataframe_pssm_returns_neutral_score(monkeypatch):
-    monkeypatch.setattr(groupe_04, "_load_pssm", lambda: object())
+    monkeypatch.setattr(groupe_04, "_PSSM", object())
 
     name, value = groupe_04.get_score(_make_candidate())
 
