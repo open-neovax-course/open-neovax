@@ -1,6 +1,7 @@
 import math
-from modules.groupe_08 import get_score
+
 from logic.types import Candidate
+from modules.groupe_08 import get_score
 
 
 def make_candidate(peptide_mut: str, peptide_wt: str | None = None):
