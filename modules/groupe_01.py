@@ -100,11 +100,32 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
+import numpy as np
+
+def get_score(candidate: "Candidate") -> tuple[str, float]:
+    """
+    Calcule l'entropie de Shannon normalisée d'un peptide.
+    Renvoie une valeur entre 0 (pire, invalide, ou très répétitif) et 1 (complexité maximale).
+    """
     # 1. Get the sequence to analyze
     peptide = candidate.peptide_mut
 
+    if not isinstance(peptide, str) or not peptide:
+        return 0.0
+        
+    peptide = peptide.upper()
+    N = len(peptide)
+    
+    if N < 8 or N > 11:
+        return 0.0 
+        
+    valid_aa = set("ACDEFGHIKLMNPQRSTVWY")
+    for aa in peptide:
+        if aa not in valid_aa:
+            return 0.0
+
     # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    score_value = _get_shannon(peptide)
 
     # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
