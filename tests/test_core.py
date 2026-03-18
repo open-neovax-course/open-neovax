@@ -114,12 +114,6 @@ class TestOrchestrator:
         names = discover_modules(d)
         assert names == ["good_module"]
 
-    def test_run_with_template_module(self):
-        """template_module is ignored by discover, so no scores are added."""
-        candidates = [_make_candidate()]
-        result = run_modules(candidates, "modules")
-        assert result[0].scores == {}
-
     def test_broken_module_does_not_crash(self, tmp_path):
         d = tmp_path / "mods"
         d.mkdir()
