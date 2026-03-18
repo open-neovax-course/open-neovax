@@ -1,11 +1,19 @@
 """
-C1 — Anchor position P2 (PSSM HLA-I) module — Open-NeoVax
+C2 — C-terminal HLA anchor (P9) (Group 02)
+===========================================
+
+Models the main C-terminal anchor of HLA-I binding by scoring the last
+residue (P9 / PΩ) of the mutant peptide.
+
+Uses the provided HLA-A*02:01 PSSM (hla_pssm_A0201.csv), taking the
+value in column P9 for the C-terminal amino acid. Returns a neutral
+score when the peptide is not a valid 9-mer, the residue is invalid,
+or the PSSM cannot be used.
 """
 
 from __future__ import annotations
 
-import warnings
-from functools import lru_cache
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,7 +40,14 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "C_anchoring_P2"
+SCORE_NAME = "C_hla_anchor_p9"
+
+NEUTRAL_SCORE = 0.0
+## valid amino acids that can be present in our peptide
+_VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
+
+## {amino acid : P9 score}
+_PSSM_P9: dict[str, float] | None
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -44,49 +59,80 @@ SCORE_NAME = "C_anchoring_P2"
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _lookup_score(amino: str) -> float:
-    """Lookup the score for a given amino acid at position P2 in the peptide.
+def _load_pssm() -> dict[str, float] | None:
+    """Loading pssm and extracting P9
 
-    Parameters
-    ----------
-        amino (str): single-letter code of the amino acid at position P2
+    Returns dict with {amino_acid: P9 score} or Non
     """
-    pssm = _get_pssm_matrix()
-    return pssm.get(amino, {}).get("P2", 0.0)
 
+    pssm_path = DATA_DIR / "hla_pssm_A0201.csv"
 
-@lru_cache(maxsize=1)
-def _get_pssm_matrix() -> dict[str, dict[str, float]]:
-    """Retrieve the PSSM matrix for HLA-A*02:01."""
-    return _load_pssm_from_csv(DATA_DIR / "hla_pssm_A0201.csv")
-
-
-def _load_pssm_from_csv(file_path: Path) -> dict[str, dict[str, float]]:
-    """Load a PSSM matrix from a CSV file.
-
-    Parameters
-    ----------
-        file_path (Path)
-
-    Returns
-    ----------
-        dict[str, dict[str, float]]
-
-    If the file does not exist, returns an empty dictionary.
-    """
-    if not file_path.exists():
-        return {}
     try:
-        data = pd.read_csv(file_path, index_col=0)
-        data = data.to_dict(orient="index")
-    except pd.errors.EmptyDataError:
-        return {}
-    except pd.errors.ParserError:
-        return {}
-    except Exception as e:
-        warnings.warn(f"Error while loading PSSM file: {e}")
-        return {}
-    return data
+        df = pd.read_csv(pssm_path)
+    except (OSError, pd.errors.EmptyDataError, pd.errors.ParserError):
+        return None
+
+    # Checking if needed columns are present
+    if "aa" not in df.columns or "P9" not in df.columns:
+        return None
+
+    p9_scores: dict[str, float] = {}
+
+    for _, row in df.iterrows():
+        aa = str(row["aa"]).strip().upper()
+
+        ## Check if amino acids have expected format
+        if len(aa) != 1 or not aa.isalpha():
+            continue
+
+        try:
+            value = float(row["P9"])
+        except (TypeError, ValueError):
+            continue
+
+        ## Check if the value is finite(no inf or nan)
+        if not math.isfinite(value):
+            continue
+
+        p9_scores[aa] = value
+
+    return p9_scores or None
+
+
+## Loaded values of P9 for each amino acid
+_PSSM_P9 = _load_pssm()
+
+
+def _valid_peptide(peptide: str) -> bool:
+    """Return true is peptide is valid for our module
+    It is a str, length is 9, last amino acid is valid
+    """
+    if not isinstance(peptide, str):
+        return False
+
+    peptide = peptide.strip().upper()
+
+    if len(peptide) < 8 or len(peptide) > 11:
+        return False
+
+    ## last aa is valid
+    return peptide[-1] in _VALID_AA
+
+
+def _compute_P9_score(peptide: str) -> float:
+    """Example internal function.
+
+    Replace this computation with your biological logic.
+    """
+    if not _valid_peptide(peptide):
+        return NEUTRAL_SCORE
+
+    if _PSSM_P9 is None:
+        return NEUTRAL_SCORE
+
+    aa = peptide.strip().upper()[-1]
+
+    return float(_PSSM_P9.get(aa, NEUTRAL_SCORE))
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -117,11 +163,11 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
+    # 1. Get the sequence to analyze
     peptide = candidate.peptide_mut
 
-    if len(peptide) < 2:
-        return (SCORE_NAME, 0.0)
+    # 2. Compute the score using your logic
+    score_value = _compute_P9_score(peptide)
 
-    score_value = _lookup_score(peptide[1].upper())
-
+    # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
