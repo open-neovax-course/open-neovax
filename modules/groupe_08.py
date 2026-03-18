@@ -2,11 +2,19 @@
 Group 08 — Department A (A1)
 Physicochemical property: Hydrophobicity
 Using the Kyte-Doolittle scale.
+
+Hypothesis:
+Hydrophobic peptides may improve interaction with HLA binding pockets
+and contribute to neoepitope properties.
 """
 
 from __future__ import annotations
 
-from logic.types import Candidate
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from logic.types import Candidate
+
 
 # ══════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -15,7 +23,6 @@ from logic.types import Candidate
 SCORE_NAME = "A1_hydrophobicity_kyte_doolittle"
 
 # Kyte-Doolittle hydropathy scale
-# Source concept: Kyte & Doolittle hydropathy index
 _KYTE_DOOLITTLE = {
     "A": 1.8,
     "R": -4.5,
@@ -41,43 +48,47 @@ _KYTE_DOOLITTLE = {
 
 
 # ══════════════════════════════════════════════════════════════════════
-# PUBLIC FUNCTION (mandatory entry point)
+# PUBLIC FUNCTION (pipeline entry point)
 # ══════════════════════════════════════════════════════════════════════
 
-
-def get_score(candidate: Candidate) -> tuple[str, float]:
+def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     Compute mean hydrophobicity of the mutated peptide.
 
-    Hypothesis:
-    Hydrophobic peptides may show improved interaction with HLA binding
-    pockets and increased stability.
-
-    Returns
-    -------
-    tuple[str, float]
-        (score_name, mean_hydrophobicity)
-
-    Raises
-    ------
-    ValueError
-        If peptide is invalid or contains unknown amino acids.
+    Rules:
+    - Must NEVER raise exceptions.
+    - Invalid peptide → return 0.0
+    - Unknown amino acids contribute 0.0
+    - Must always return (SCORE_NAME, float)
     """
 
-    peptide = candidate.peptide_mut
+    try:
+        peptide = getattr(candidate, "peptide_mut", None)
+    except Exception:
+        return (SCORE_NAME, 0.0)
 
     if not isinstance(peptide, str) or not peptide:
-        raise ValueError("Invalid peptide sequence.")
+        return (SCORE_NAME, 0.0)
 
     peptide = peptide.strip().upper()
+
+    if len(peptide) == 0:
+        return (SCORE_NAME, 0.0)
 
     scores: list[float] = []
 
     for aa in peptide:
-        if aa not in _KYTE_DOOLITTLE:
-            raise ValueError(f"Unknown amino acid: {aa}")
-        scores.append(_KYTE_DOOLITTLE[aa])
+        scores.append(_KYTE_DOOLITTLE.get(aa, 0.0))
+
+    if len(scores) == 0:
+        return (SCORE_NAME, 0.0)
 
     mean_score = sum(scores) / len(scores)
 
-    return SCORE_NAME, mean_score
+    if not isinstance(mean_score, float):
+        return (SCORE_NAME, 0.0)
+
+    if mean_score != mean_score:  # NaN check
+        return (SCORE_NAME, 0.0)
+
+    return (SCORE_NAME, mean_score)
