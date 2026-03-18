@@ -4,8 +4,13 @@ Physicochemical property: Hydrophobicity
 Using the Kyte-Doolittle scale.
 
 Hypothesis:
-Hydrophobic peptides may improve interaction with HLA binding pockets
-and contribute to neoepitope properties.
+Hydrophobic peptides may influence HLA interaction properties.
+This module computes the mean Kyte-Doolittle hydrophobicity
+of the mutated peptide.
+
+Important:
+This function must NEVER raise exceptions.
+Invalid inputs return a neutral score (0.0).
 """
 
 from __future__ import annotations
@@ -48,7 +53,7 @@ _KYTE_DOOLITTLE = {
 
 
 # ══════════════════════════════════════════════════════════════════════
-# PUBLIC FUNCTION (pipeline entry point)
+# PUBLIC FUNCTION
 # ══════════════════════════════════════════════════════════════════════
 
 
@@ -56,11 +61,16 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     Compute mean hydrophobicity of the mutated peptide.
 
-    Rules:
-    - Must NEVER raise exceptions.
-    - Invalid peptide → return 0.0
-    - Unknown amino acids contribute 0.0
-    - Must always return (SCORE_NAME, float)
+    Returns
+    -------
+    tuple[str, float]
+        (score_name, mean_hydrophobicity)
+
+    Rules
+    -----
+    - Must never raise exceptions.
+    - Invalid peptide → return 0.0.
+    - Unknown amino acids contribute 0.0.
     """
 
     try:
