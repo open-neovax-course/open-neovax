@@ -118,9 +118,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     # 1. Compute the score using your logic
     is_valid = _validate_mutation_in_window(
-        candidate.peptide_wt,
-        candidate.peptide_mut,
-        candidate.mut_pos_1based
+        candidate.peptide_wt, candidate.peptide_mut, candidate.mut_pos_1based
     )
     score_value = NEUTRAL_SCORE if is_valid else INVALID_PENALTY
 
