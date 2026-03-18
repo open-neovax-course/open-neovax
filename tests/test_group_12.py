@@ -64,4 +64,3 @@ def test_absent_peptide_returns_zero():
 def test_empty_peptide_returns_zero():
     _, value = get_score(_make_candidate(""))
     assert value == 0.0
-    
