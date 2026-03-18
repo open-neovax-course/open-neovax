@@ -37,7 +37,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "template_score"
+SCORE_NAME = "D_mutation_in_window"
 
 
 # ══════════════════════════════════════════════════════════════════════
