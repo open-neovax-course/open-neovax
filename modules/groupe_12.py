@@ -44,18 +44,8 @@ PENALTY = -1000.0
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
-    """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
-
-
 def _load_human_peptides(path: Path) -> set[str]:
+    """Load the human peptide corpus from a text file."""
     try:
         with path.open("r", encoding="utf-8") as f:
             return {

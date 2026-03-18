@@ -30,9 +30,9 @@ def test_return_types():
     assert isinstance(value, (int, float))
 
 
-def test_score_name_not_empty():
+def test_score_name_is_expected():
     name, _ = get_score(_make_candidate())
-    assert name != ""
+    assert name == "d1_exact_self_similarity"
 
 
 def test_score_value_finite():
