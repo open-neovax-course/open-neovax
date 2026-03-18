@@ -39,6 +39,10 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Convention: <department>_<concept>[_detail]
 SCORE_NAME = "D_mutation_in_window"
 
+# Scoring policy: neutral value for valid candidates, strong penalty for inconsistent mutation data.
+NEUTRAL_SCORE = 0.0
+INVALID_PENALTY = -1000.0
+
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
