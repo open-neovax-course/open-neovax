@@ -51,6 +51,7 @@ _KYTE_DOOLITTLE = {
 # PUBLIC FUNCTION (pipeline entry point)
 # ══════════════════════════════════════════════════════════════════════
 
+
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     Compute mean hydrophobicity of the mutated peptide.
