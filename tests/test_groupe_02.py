@@ -46,7 +46,7 @@ def test_score_value_finite():
 
 
 def test_nominal_case():
-    """Test Nominal : Un peptide standard de 9 acides aminés qui se termine par une lettre valide."""
+    """Un peptide standard de 9 acides aminés qui se termine par une lettre valide."""
     candidate = _make_candidate()
     name, value = get_score(candidate)
     assert isinstance(value, (int, float))
@@ -56,7 +56,7 @@ def test_nominal_case():
 
 
 def test_edge_case_short_peptide():
-    """Test Edge-case : Un peptide trop court ou vide ne doit pas faire planter le module."""
+    """Un peptide trop court ou vide ne doit pas faire planter le module."""
     candidate = _make_candidate(peptide_wt="AA", peptide_mut="AAV", mut_pos_1based=2)
     name, value = get_score(candidate)
     assert isinstance(value, (int, float))
@@ -71,8 +71,7 @@ def test_edge_case_short_peptide():
 
 
 def test_invalid_case():
-    """Test Invalid : Un peptide trop court ou vide ne doit pas faire planter le module."""
-
+    """Un peptide trop court ou vide ne doit pas faire planter le module."""
     candidate = _make_candidate(
         peptide_wt="111111111", peptide_mut="111111111", mut_pos_1based=9
     )
@@ -83,7 +82,7 @@ def test_invalid_case():
 
 
 def test_invalid_case_mut_pos_1based():
-    """Test Invalid : Un peptide trop long ou vide ne doit pas faire planter le module."""
+    """Un peptide trop long ou vide ne doit pas faire planter le module."""
     candidate = _make_candidate(
         mut_pos_1based=18,
         peptide_wt="AAAAAAAAAAAAAAAAAA",
