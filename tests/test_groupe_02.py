@@ -52,6 +52,7 @@ def test_nominal_case():
     assert isinstance(value, (int, float))
     assert not math.isnan(value)
     assert not math.isinf(value)
+    assert value == 2.0
 
 
 def test_edge_case_short_peptide():
