@@ -38,7 +38,6 @@ REQUIRED_PSSM_COLUMNS = [f"P{i}" for i in range(1, 10)]
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
-
 def _load_pssm() -> pd.DataFrame | None:
     """Load and validate the HLA-A*02:01 PSSM used for delta binding."""
     try:
@@ -88,6 +87,11 @@ def _pssm_score(peptide: str, pssm: pd.DataFrame) -> float:
         except (TypeError, ValueError):
             return 0.0
     return total
+# ══════════════════════════════════════════════════════════════════════
+#  LOCAL CACHE
+# ══════════════════════════════════════════════════════════════════════
+
+_PSSM = _load_pssm()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -100,7 +104,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
 
     Falls back to a neutral score of 0.0 when inputs or PSSM data are invalid.
     """
-    pssm = _load_pssm()
+    pssm = _PSSM
     peptide_wt = _normalize_peptide(getattr(candidate, "peptide_wt", None), pssm)
     peptide_mut = _normalize_peptide(getattr(candidate, "peptide_mut", None), pssm)
     if pssm is None or peptide_wt is None or peptide_mut is None:
