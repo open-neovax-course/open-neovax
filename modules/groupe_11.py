@@ -1,14 +1,12 @@
 """
-Template module — Open-NeoVax
-=============================
+D3 — Mutation within window (Group 11)
+=======================================
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
+Validates that the mutation exists and is consistent in the peptide.
+Checks: WT and MUT are different, position is in range, 
+and the residue at the position actually differs.
 
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+This is a data quality check to ensure candidates are valid neo-epitopes.
 """
 
 from __future__ import annotations
