@@ -3,7 +3,7 @@ D3 — Mutation within window (Group 11)
 =======================================
 
 Validates that the mutation exists and is consistent in the peptide.
-Checks: WT and MUT are different, position is in range, 
+Checks: WT and MUT are different, position is in range,
 and the residue at the position actually differs.
 
 This is a data quality check to ensure candidates are valid neo-epitopes.
