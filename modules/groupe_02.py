@@ -99,6 +99,37 @@ def _load_pssm() -> dict[str, float] | None :
 ## Loaded values of P9 for each amino acid
 _PSSM_P9 = _load_pssm()
 
+def _valid_peptide(peptide: str) -> bool:
+    """ Return true is peptide is valid for our module
+        It is a str, length is 9, last amino acid is valid
+    """
+    if not isinstance(peptide, str):
+        return False
+    
+    peptide = peptide.strip().upper()
+
+    if len(peptide) != 9:
+        return False
+    
+    ## last aa is valid
+    return peptide[-1] in _VALID_AA
+
+
+def _compute_P9_score(peptide: str) -> float:
+    """Example internal function.
+
+    Replace this computation with your biological logic.
+    """
+    if not _valid_peptide(peptide):
+        return NEUTRAL_SCORE
+
+    if _PSSM_P9 is None:
+        return NEUTRAL_SCORE
+    
+    aa = peptide.strip().upper()[-1]
+    
+    return float(_PSSM_P9.get(aa, NEUTRAL_SCORE))
+
 
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
@@ -132,7 +163,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     peptide = candidate.peptide_mut
 
     # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    score_value = _compute_P9_score(peptide)
 
     # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
