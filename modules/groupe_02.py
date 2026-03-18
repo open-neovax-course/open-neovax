@@ -1,14 +1,14 @@
 """
-Template module — Open-NeoVax
-=============================
+C2 — C-terminal HLA anchor (P9) (Group 02)
+===========================================
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
+Models the main C-terminal anchor of HLA-I binding by scoring the last
+residue (P9 / PΩ) of the mutant peptide.
 
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+Uses the provided HLA-A*02:01 PSSM (hla_pssm_A0201.csv), taking the
+value in column P9 for the C-terminal amino acid. Returns a neutral
+score when the peptide is not a valid 9-mer, the residue is invalid,
+or the PSSM cannot be used.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "C_terminal_achor_P9"
+SCORE_NAME = "C_hla_anchor_p9"
 
 NEUTRAL_SCORE = 0.0
 ## valid amino acids that can be present in our peptide
@@ -112,7 +112,7 @@ def _valid_peptide(peptide: str) -> bool:
 
     peptide = peptide.strip().upper()
 
-    if len(peptide) != 9:
+    if len(peptide) < 8 or len(peptide) > 11:
         return False
 
     ## last aa is valid
