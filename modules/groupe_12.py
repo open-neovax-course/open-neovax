@@ -1,14 +1,7 @@
-"""
-Template module — Open-NeoVax
-=============================
+"""Group 12 module — D1 exact self-similarity.
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
-
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+This module penalizes candidates whose mutated peptide
+exactly matches a known human peptide (self similarity).
 """
 
 from __future__ import annotations
@@ -33,11 +26,13 @@ if TYPE_CHECKING:
 # Useful if your module needs to load an external file
 # (PSSM matrix, self-peptide list, etc.).
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+HUMAN_PEPTIDES_PATH = DATA_DIR / "human_peptides_small.txt"
 
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
 SCORE_NAME = "d1_exact_self_similarity"
+PENALTY = -1000.0
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -60,39 +55,43 @@ def _compute_something(peptide: str) -> float:
     return 0.0
 
 
+def _load_human_peptides(path: Path) -> set[str]:
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return {
+                line.strip()
+                for line in f
+                if line.strip()
+            }
+    except OSError:
+        return set()
+
+
+HUMAN_PEPTIDES = _load_human_peptides(HUMAN_PEPTIDES_PATH)
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
+    """Compute D1 exact self-similarity score.
 
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
-
-    Parameters
-    ----------
-    candidate : Candidate
-        Object containing neo-epitope information:
-        - candidate.peptide_mut  (str)  : mutated sequence
-        - candidate.peptide_wt   (str)  : wild-type sequence
-        - candidate.mut_pos_1based (int): mutation position
-        - candidate.gene         (str)  : source gene
-        - candidate.hla_allele   (str)  : target HLA allele
-
-    Returns
-    -------
-    tuple[str, float]
-        (score_name, score_value)
+    Returns a strong negative penalty if the mutated peptide
+    exactly matches a known human peptide.
     """
-    # 1. Get the sequence to analyze
     peptide = candidate.peptide_mut
 
-    # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    # Safety: empty peptide → neutral score
+    if not peptide:
+        return (SCORE_NAME, 0.0)
 
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    # Exact match with human peptide corpus → strong penalty
+    if peptide in HUMAN_PEPTIDES:
+        return (SCORE_NAME, PENALTY)
+
+    # Otherwise → no penalty
+    return (SCORE_NAME, 0.0)
+
+
