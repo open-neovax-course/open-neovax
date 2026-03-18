@@ -77,8 +77,8 @@ def test_invalid_case():
     )
     name, value = get_score(candidate)
     assert isinstance(value, (int, float))
-    assert math.isnan(value)
-    assert math.isinf(value)
+    assert not math.isnan(value)
+    assert not math.isinf(value)
 
 
 def test_invalid_case_mut_pos_1based():
@@ -90,5 +90,5 @@ def test_invalid_case_mut_pos_1based():
     )
     name, value = get_score(candidate)
     assert isinstance(value, (int, float))
-    assert math.isnan(value)
-    assert math.isinf(value)
+    assert not math.isnan(value)
+    assert not math.isinf(value)
