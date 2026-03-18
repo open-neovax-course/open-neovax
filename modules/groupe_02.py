@@ -13,8 +13,10 @@ THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING
+import pandas as pd
 
 # ──────────────────────────────────────────────────────────────────────
 # Import the Candidate type.
@@ -37,7 +39,14 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "template_score"
+SCORE_NAME = "C_terminal_achor_P9"
+
+NEUTRAL_SCORE = 0.0
+## valid amino acids that can be present in our peptide
+_VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
+
+## {amino acid : P9 score}
+_PSSM_P9: dict[str, float] | None
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -48,16 +57,47 @@ SCORE_NAME = "template_score"
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
+def _load_pssm() -> dict[str, float] | None :
+    """Loading pssm and extracting P9
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
+    Returns dict with {amino_acid: P9 score} or Non
     """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
+
+    pssm_path = DATA_DIR / "hla_pssm_A0201.csv"
+
+    try:
+        df = pd.read_csv(pssm_path)
+    except (OSError, pd.errors.EmptyDataError, pd.errors.ParserError):
+        return None
+
+    # Checking if needed columns are present
+    if "aa" not in df.columns or "P9" not in df.columns:
+        return None
+
+    p9_scores: dict[str, float] = {}
+
+    for _, row in df.iterrows():
+        aa = str(row["aa"]).strip().upper()
+
+        ## Check if amino acids have expected format
+        if len(aa) != 1 or not aa.isalpha():
+            continue
+
+        try:
+            value = float(row["P9"])
+        except (TypeError, ValueError):
+            continue
+
+        ## Check if the value is finite(no inf or nan)
+        if not math.isfinite(value): 
+            continue
+
+        p9_scores[aa] = value
+
+    return p9_scores or None
+
+## Loaded values of P9 for each amino acid
+_PSSM_P9 = _load_pssm()
 
 
 # ══════════════════════════════════════════════════════════════════════
