@@ -1,5 +1,5 @@
 from logic.types import Candidate
-from modules.groupe_XX import get_score
+from modules.groupe_06 import get_score
 
 
 def _make_candidate(peptide_mut="SLMAFTIAV"):
