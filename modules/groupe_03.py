@@ -131,6 +131,6 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     if len(peptide) < 2:
         return (SCORE_NAME, 0.0)
 
-    score_value = _lookup_score(peptide[2])
+    score_value = _lookup_score(peptide[1].upper())
 
     return (SCORE_NAME, score_value)
