@@ -38,6 +38,7 @@ REQUIRED_PSSM_COLUMNS = [f"P{i}" for i in range(1, 10)]
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
+
 def _load_pssm() -> pd.DataFrame | None:
     """Load and validate the HLA-A*02:01 PSSM used for delta binding."""
     try:
@@ -87,6 +88,8 @@ def _pssm_score(peptide: str, pssm: pd.DataFrame) -> float:
         except (TypeError, ValueError):
             return 0.0
     return total
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  LOCAL CACHE
 # ══════════════════════════════════════════════════════════════════════
