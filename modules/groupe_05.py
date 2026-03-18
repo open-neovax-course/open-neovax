@@ -37,7 +37,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-a4_delta_wt_vs_mut = "template_score"
+SCORE_NAME = "a4_delta_wt_vs_mut"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -95,4 +95,4 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     score_value = _compute_something(peptide)
 
     # 3. Return the result in the expected format
-    return (a4_delta_wt_vs_mut, score_value)
+    return (SCORE_NAME, score_value)
