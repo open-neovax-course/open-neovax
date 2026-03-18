@@ -48,11 +48,7 @@ def _load_human_peptides(path: Path) -> set[str]:
     """Load the human peptide corpus from a text file."""
     try:
         with path.open("r", encoding="utf-8") as f:
-            return {
-                line.strip()
-                for line in f
-                if line.strip()
-            }
+            return {line.strip() for line in f if line.strip()}
     except OSError:
         return set()
 
@@ -83,5 +79,3 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
 
     # Otherwise → no penalty
     return (SCORE_NAME, 0.0)
-
-
