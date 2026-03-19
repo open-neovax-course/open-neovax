@@ -31,7 +31,7 @@ HUMAN_PEPTIDES_PATH = DATA_DIR / "human_peptides_small.txt"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "d1_exact_self_similarity"
+SCORE_NAME = "D1_exact_self_similarity"
 PENALTY = -1000.0
 
 
@@ -67,7 +67,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     Returns a strong negative penalty if the mutated peptide
     exactly matches a known human peptide.
     """
-    peptide = candidate.peptide_mut
+    peptide = candidate.peptide_mut.upper()
 
     # Safety: empty peptide → neutral score
     if not peptide:
