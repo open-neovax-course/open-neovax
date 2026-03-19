@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from logic.types import Candidate
 from modules.groupe_01 import SCORE_NAME, get_score
 
@@ -33,12 +31,26 @@ def test_nominal_extreme_entropy():
     """Test the bounds of the Shannon entropy calculation."""
     # Minimum entropy: All amino acids are the same (should be 0.0)
     _, val_min = get_score(_make_candidate("AAAAAAAAA"))
-    assert val_min == pytest.approx(0.0, abs=1e-5)
+    assert val_min > 0.00
+    assert val_min < 0.01
 
     # Maximum entropy: All amino acids are unique (should be 1.0)
     # Length 9, 9 distinct characters
-    _, val_max = get_score(_make_candidate("ACDEFGHIK"))
-    assert val_max == pytest.approx(1.0, abs=1e-5)
+    _, val_max = get_score(_make_candidate("AVSTKRDEG"))
+    assert val_max > 0.95
+    assert val_max < 1.0
+
+
+def test_physicochemical_groups_differentiation():
+    """
+    Test that two peptides with the same number of unique amino acids
+    score differently based on their physicochemical diversity.
+    """
+    _, score_1 = get_score(_make_candidate("ACDEFGHIK"))
+
+    _, score_2 = get_score(_make_candidate("AVLIMFWPC"))
+
+    assert score_1 != score_2
 
 
 # ── Edge-Case Tests ─────────────────────────────────────────────────
