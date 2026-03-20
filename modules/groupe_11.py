@@ -130,7 +130,12 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     is_valid = _validate_mutation_in_window(
         candidate.peptide_wt, candidate.peptide_mut, candidate.mut_pos_1based
     )
-    score_value = NEUTRAL_SCORE if is_valid else INVALID_PENALTY
+    if not is_valid:
+        score_value = INVALID_PENALTY
+    else:
+        score_value = _position_relevance(
+            candidate.mut_pos_1based, len(candidate.peptide_mut)
+        )
 
     # 2. Return the result in the expected format
     return (SCORE_NAME, score_value)
