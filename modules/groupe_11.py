@@ -6,7 +6,8 @@ Validates that the mutation exists and is consistent in the peptide.
 Checks: WT and MUT are different, position is in range,
 and the residue at the position actually differs.
 
-This is a data quality check to ensure candidates are valid neo-epitopes.
+Invalid candidates get a strong penalty.
+Valid candidates get a score based on the mutation position.
 """
 
 from __future__ import annotations
