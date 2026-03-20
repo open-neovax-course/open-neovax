@@ -86,6 +86,18 @@ def _validate_mutation_in_window(
     return peptide_wt[index] != peptide_mut[index]
 
 
+def _position_relevance(mut_pos_1based: int, pep_len: int) -> float:
+    """Return a relevance weight based on mutation position in the peptide."""
+
+    if mut_pos_1based in (2, pep_len):
+        return 0.2
+
+    if 3 <= mut_pos_1based <= pep_len - 1:
+        return 1.0
+
+    return 0.5
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
