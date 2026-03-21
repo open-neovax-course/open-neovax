@@ -32,6 +32,28 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Convention: <department>_<concept>[_detail]
 SCORE_NAME = "A_delta_wt_vs_mut"
 
+AA_GROUPS: dict[str, str] = {
+    "A": "hydrophobic",
+    "V": "hydrophobic",
+    "I": "hydrophobic",
+    "L": "hydrophobic",
+    "M": "hydrophobic",
+    "F": "hydrophobic",
+    "W": "hydrophobic",
+    "P": "hydrophobic",
+    "S": "polar",
+    "T": "polar",
+    "N": "polar",
+    "Q": "polar",
+    "Y": "polar",
+    "C": "polar",
+    "K": "positive",
+    "R": "positive",
+    "H": "positive",
+    "D": "negative",
+    "E": "negative",
+    "G": "special",
+}
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
@@ -59,33 +81,34 @@ def _compute_something(peptide: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
-
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
+    """Compute the delta WT vs MUT physicochemical score
 
     Parameters
     ----------
     candidate : Candidate
-        Object containing neo-epitope information:
-        - candidate.peptide_mut  (str)  : mutated sequence
-        - candidate.peptide_wt   (str)  : wild-type sequence
-        - candidate.mut_pos_1based (int): mutation position
-        - candidate.gene         (str)  : source gene
-        - candidate.hla_allele   (str)  : target HLA allele
+        - candidate.peptide_mut : mutated sequence
+        - candidate.peptide_wt  : wild-type sequence
 
     Returns
     -------
     tuple[str, float]
-        (score_name, score_value)
+        ("A_delta_wt_vs_mut", score)
+        score = fraction of non-conservative mutations in [0, 1]
     """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
+    try:
+        mut = candidate.peptide_mut.strip().upper()
+        wt = candidate.peptide_wt.strip().upper()
 
-    # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+        if not mut or not wt or len(mut) != len(wt):
+            return (SCORE_NAME, -1.0)
+        if mut == wt:
+            return (SCORE_NAME, 0.0)
 
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+        score = sum(
+            AA_GROUPS.get(a, "?") != AA_GROUPS.get(b, "?") for a, b in zip(wt, mut)
+        ) / len(mut)
+
+        return (SCORE_NAME, score)
+
+    except Exception:
+        return (SCORE_NAME, -1.0)

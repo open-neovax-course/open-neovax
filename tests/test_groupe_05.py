@@ -38,3 +38,4 @@ def test_score_value_finite():
     _, value = get_score(_make_candidate())
     assert not math.isnan(value)
     assert not math.isinf(value)
+
