@@ -55,25 +55,6 @@ AA_GROUPS: dict[str, str] = {
     "G": "special",
 }
 
-# ══════════════════════════════════════════════════════════════════════
-#  INTERNAL FUNCTIONS (private)
-# ══════════════════════════════════════════════════════════════════════
-#
-# You can define as many internal functions as you need.
-# They will never be called by the pipeline.
-# By convention, prefix them with _ to indicate they are private.
-
-
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
-    """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
-
 
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
@@ -92,8 +73,10 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     Returns
     -------
     tuple[str, float]
-        ("A_delta_wt_vs_mut", score)
-        score = fraction of non-conservative mutations in [0, 1]
+        ("A_delta_wt_vs_mut", score) where:
+        - score = 0.0  : conservative mutation (same physicochemical group)
+        - score > 0.0  : non-conservative mutation (different group)
+        - score = -1.0 : invalid input (empty, different lengths, error)
     """
     try:
         mut = candidate.peptide_mut.strip().upper()
@@ -104,10 +87,12 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
         if mut == wt:
             return (SCORE_NAME, 0.0)
 
-        score = sum(
-            AA_GROUPS.get(a, "?") != AA_GROUPS.get(b, "?") for a, b in zip(wt, mut)
-        ) / len(mut)
+        total = 0
+        for a, b in zip(wt, mut):
+            if AA_GROUPS.get(a, "?") != AA_GROUPS.get(b, "?"):
+                total += 1
 
+        score = total / len(mut)
         return (SCORE_NAME, score)
 
     except Exception:
