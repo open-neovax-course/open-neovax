@@ -6,7 +6,8 @@ Validates that the mutation exists and is consistent in the peptide.
 Checks: WT and MUT are different, position is in range,
 and the residue at the position actually differs.
 
-This is a data quality check to ensure candidates are valid neo-epitopes.
+Invalid candidates get a strong penalty.
+Valid candidates get a score based on the mutation position.
 """
 
 from __future__ import annotations
@@ -86,6 +87,18 @@ def _validate_mutation_in_window(
     return peptide_wt[index] != peptide_mut[index]
 
 
+def _position_relevance(mut_pos_1based: int, pep_len: int) -> float:
+    """Return a relevance weight based on mutation position in the peptide."""
+
+    if mut_pos_1based in (2, pep_len):
+        return 0.2
+
+    if 3 <= mut_pos_1based <= pep_len - 1:
+        return 1.0
+
+    return 0.5
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
@@ -118,7 +131,12 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     is_valid = _validate_mutation_in_window(
         candidate.peptide_wt, candidate.peptide_mut, candidate.mut_pos_1based
     )
-    score_value = NEUTRAL_SCORE if is_valid else INVALID_PENALTY
+    if not is_valid:
+        score_value = INVALID_PENALTY
+    else:
+        score_value = _position_relevance(
+            candidate.mut_pos_1based, len(candidate.peptide_mut)
+        )
 
     # 2. Return the result in the expected format
     return (SCORE_NAME, score_value)

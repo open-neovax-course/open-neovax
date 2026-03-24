@@ -1,11 +1,11 @@
-"""Tests for the template module."""
+"""Tests for the D3 module."""
 
 from __future__ import annotations
 
 import math
 
 from logic.types import Candidate
-from modules.groupe_11 import INVALID_PENALTY, NEUTRAL_SCORE, get_score
+from modules.groupe_11 import INVALID_PENALTY, get_score
 
 
 def _make_candidate(
@@ -42,10 +42,20 @@ def test_score_value_finite():
 # D3-specific edge case tests
 
 
-def test_valid_mutation():
-    # Residues differ at declared position
+def test_central_mutation():
     _, score = get_score(_make_candidate("SLYNTVATL", "SLYNTIATL", 6))
-    assert score == NEUTRAL_SCORE
+    assert score == 1.0
+
+
+def test_anchor_mutation():
+    _, anchor_score = get_score(_make_candidate("SLYNTVATL", "SAYNTVATL", 2))
+    _, central_score = get_score(_make_candidate("SLYNTVATL", "SLYNTIATL", 6))
+    assert anchor_score < central_score
+
+
+def test_anchor_position():
+    _, score = get_score(_make_candidate("SLYNTVATL", "SLYNTVATA", 9))
+    assert score == 0.2
 
 
 def test_identical_peptides():

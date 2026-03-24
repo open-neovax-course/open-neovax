@@ -20,7 +20,7 @@
 | 07 | Guellal | Sofia | PyChic | |
 | 08 | Benrabh | Hanae | Jolinika | — |
 | 08 | Quach | Martine | LuuiChi | |
-| 08 | Ravelomanna | Charlotte | — | |
+| 08 | Ravelomanna | Charlotte | charlottecrg | |
 | 09 | Bouazza | Zakaria | Zakaria-BOUAZZA | — |
 | 09 | Saighi | Achraf | — | |
 | 10 | Mattar | Mario | mmattar18 | — |
