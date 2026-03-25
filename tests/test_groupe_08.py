@@ -1,39 +1,40 @@
-import math
-
 from logic.types import Candidate
 from modules.groupe_08 import get_score
 
 
-def make_candidate(peptide_mut: str, peptide_wt: str | None = None):
+def _make_candidate(peptide_mut: str, peptide_wt: str = "AAAAAAAAA") -> Candidate:
     return Candidate(
-        candidate_id="test",
-        peptide_wt=peptide_wt or peptide_mut,
+        candidate_id="TEST_08",
+        peptide_wt=peptide_wt,
         peptide_mut=peptide_mut,
-        mut_pos_1based=1,
-        gene="TEST",
-        hla_allele="A*02:01",
-        note=None,
+        mut_pos_1based=5,
     )
 
 
-def test_get_score_returns_correct_type():
-    candidate = make_candidate("AAAAAAAAA")
-    name, value = get_score(candidate)
-
-    assert isinstance(name, str)
-    assert isinstance(value, float)
-
-
-def test_get_score_not_nan():
-    candidate = make_candidate("AAAAAAAAA")
-    _, value = get_score(candidate)
-
-    assert not math.isnan(value)
+def test_hydrophobic_anchor_improvement():
+    """Mutation that improves anchor hydrophobicity should score positive."""
+    # WT has A@P2 (low hydro), MUT has L@P2 (high hydro)
+    cand = _make_candidate(peptide_wt="SAMAFTIAV", peptide_mut="SLMAFTIAV")
+    _, score = get_score(cand)
+    assert score > 0.0
 
 
-def test_get_score_returns_tuple():
-    candidate = make_candidate("AAAAAAAAA")
-    result = get_score(candidate)
+def test_wt_equals_mut_scores_zero():
+    """No mutation = no delta = score 0."""
+    cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SLMAFTIAV")
+    _, score = get_score(cand)
+    assert score == 0.0
 
-    assert isinstance(result, tuple)
-    assert len(result) == 2
+
+def test_exposed_hydrophobicity_penalty():
+    """Mutation that makes exposed center more hydrophobic should score lower."""
+    # WT: polar center (D), MUT: hydrophobic center (I)
+    _, score_polar = get_score(_make_candidate("AAADAAAAA", "AAAAAAAAA"))
+    _, score_hydro = get_score(_make_candidate("AAAIAAAAA", "AAAAAAAAA"))
+    assert score_hydro < score_polar
+
+
+def test_invalid_inputs_no_crash():
+    """Ensure CI remains green with robust error handling."""
+    _, score = get_score(_make_candidate(None))
+    assert score == 0.0
