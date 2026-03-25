@@ -72,13 +72,14 @@ TCR_POSITIONS = [3, 4, 5, 6]
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
+def _tcr_contact_score(peptide: str) -> float:
+    """Compute average saliency at TCR-exposed positions P4-P7."""
+    if not peptide or len(peptide) < 8:
+        return 0.0
 
-    Replace this computation with your biological logic.
-    """
-    _ = peptide
-    return 0.0
+    peptide = peptide.upper()
+    total = sum(TCR_SALIENCY.get(peptide[i], 0.0) for i in TCR_POSITIONS)
+    return total / len(TCR_POSITIONS)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -113,7 +114,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     peptide = candidate.peptide_mut
 
     # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    score_value = _tcr_contact_score(peptide)
 
     # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
