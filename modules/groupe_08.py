@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 # CONSTANTS
 # ══════════════════════════════════════════════════════════════════════
 
-SCORE_NAME = "A1_hydrophobicity_kyte_doolittle"
+SCORE_NAME = "A_hydrophobicity_kd"
 
 # Kyte-Doolittle hydropathy scale
 _KYTE_DOOLITTLE = {
