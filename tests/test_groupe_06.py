@@ -13,10 +13,15 @@ Test coverage:
     8. Contract              — return type is always (str, float)
 """
 
-import pytest
-from logic.types import Candidate
-from modules.groupe_06 import get_score, SCORE_NAME
+# Standard library imports
+# (none in this file)
 
+# Third-party imports
+import pytest
+
+# Local application imports
+from logic.types import Candidate
+from modules.groupe_06 import SCORE_NAME, get_score
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -108,7 +113,7 @@ def test_empty_peptide():
 
 
 def test_none_peptide(monkeypatch):
-    """None as peptide_mut → returns a float, does not crash."""
+    """None as git pushpeptide_mut → returns a float, does not crash."""
     candidate = _make_candidate("PLACEHOLDER")
     monkeypatch.setattr(candidate, "peptide_mut", None)
     name, value = get_score(candidate)
