@@ -5,7 +5,11 @@ from modules.groupe_09 import get_score
 
 class DummyCandidate:
     def __init__(self, sequence):
-        self.sequence = sequence
+        self.peptide_mut = sequence
+        self.peptide_wt = sequence
+        self.mut_pos_1based = 1
+        self.gene = "TEST"
+        self.hla_allele = "HLA-A02:01"
         self.scores = {}
 
 
