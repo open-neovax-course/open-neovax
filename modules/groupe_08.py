@@ -59,47 +59,52 @@ _KYTE_DOOLITTLE = {
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
-    Compute mean hydrophobicity of the mutated peptide.
+    Position-aware hydrophobicity score with mutation effect (delta model).
 
-    Returns
-    -------
-    tuple[str, float]
-        (score_name, mean_hydrophobicity)
-
-    Rules
-    -----
-    - Must never raise exceptions.
-    - Invalid peptide → return 0.0.
-    - Unknown amino acids contribute 0.0.
+    Improvements:
+    - Anchors (P2, P9): hydrophobic = good
+    - Exposed (P4–P7): hydrophobic = bad
+    - Now includes delta between WT and MUT
     """
 
-    try:
-        peptide = getattr(candidate, "peptide_mut", None)
-    except Exception:
+    pep_mut = getattr(candidate, "peptide_mut", None)
+    pep_wt = getattr(candidate, "peptide_wt", None)
+
+    if not isinstance(pep_mut, str) or len(pep_mut) < 8:
+        return (SCORE_NAME, 0.0)
+    if not isinstance(pep_wt, str) or len(pep_wt) != len(pep_mut):
+        pep_wt = pep_mut  # fallback to neutral comparison
+
+    pep_mut = pep_mut.strip().upper()
+    pep_wt = pep_wt.strip().upper()
+
+    # --- anchors (P2, P9)
+    def _anchor_score(seq: str) -> float:
+        vals = [_KYTE_DOOLITTLE.get(seq[1], 0.0), _KYTE_DOOLITTLE.get(seq[-1], 0.0)]
+        return sum(vals) / len(vals)
+
+    # --- exposed (P4–P7)
+    def _exposed_score(seq: str) -> float:
+        idxs = list(range(3, min(7, len(seq))))
+        if not idxs:
+            return 0.0
+        vals = [_KYTE_DOOLITTLE.get(seq[i], 0.0) for i in idxs]
+        return sum(vals) / len(vals)
+
+    # Compute hydrophobicity for WT and MUT
+    anchor_mut = _anchor_score(pep_mut)
+    anchor_wt = _anchor_score(pep_wt)
+    exposed_mut = _exposed_score(pep_mut)
+    exposed_wt = _exposed_score(pep_wt)
+
+    # Weight anchors higher, exposed lower
+    delta_anchor = 2.0 * (anchor_mut - anchor_wt)
+    delta_exposed = 1.5 * (exposed_mut - exposed_wt)
+
+    score = delta_anchor - delta_exposed
+
+    # Safe fallback
+    if not isinstance(score, float) or score != score:
         return (SCORE_NAME, 0.0)
 
-    if not isinstance(peptide, str) or not peptide:
-        return (SCORE_NAME, 0.0)
-
-    peptide = peptide.strip().upper()
-
-    if len(peptide) == 0:
-        return (SCORE_NAME, 0.0)
-
-    scores: list[float] = []
-
-    for aa in peptide:
-        scores.append(_KYTE_DOOLITTLE.get(aa, 0.0))
-
-    if len(scores) == 0:
-        return (SCORE_NAME, 0.0)
-
-    mean_score = sum(scores) / len(scores)
-
-    if not isinstance(mean_score, float):
-        return (SCORE_NAME, 0.0)
-
-    if mean_score != mean_score:  # NaN check
-        return (SCORE_NAME, 0.0)
-
-    return (SCORE_NAME, mean_score)
+    return (SCORE_NAME, score)
