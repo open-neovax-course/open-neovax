@@ -73,7 +73,7 @@ def test_different_lengths():
 
 def test_granularity():
     """
-    L -> D (hydrophobic -> negative) should score worse than L-> S (hydrophobic 
+    L -> D (hydrophobic -> negative) should score worse than L-> S (hydrophobic
     -> polar)
 
     """
