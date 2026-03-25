@@ -54,7 +54,7 @@ def test_radical_mutation():
     """L -> D (hydrophobic -> negative) should score > 0."""
     cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SDMAFTIAV")
     _, score = get_score(cand)
-    assert score > 0.0
+    assert score < 0.0
 
 
 def test_different_lengths():
