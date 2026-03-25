@@ -26,7 +26,7 @@ def test_get_score_empty():
     assert value == -1.0
 
 
-# Edge case: invalid characters
+# Invalid-input case: invalid characters
 def test_get_score_invalid():
     name, value = get_score(make_candidate("1234!@#"))
     assert name == "A_net_charge"
