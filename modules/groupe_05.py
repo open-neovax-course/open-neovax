@@ -6,6 +6,7 @@ GROUPE 05 — Open-NeoVax
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -27,66 +28,101 @@ if TYPE_CHECKING:
 # (PSSM matrix, self-peptide list, etc.).
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
-# Name of the score returned by this module.
-# IMPORTANT: this name must be unique across all modules!
-# Convention: <department>_<concept>[_detail]
+
 SCORE_NAME = "A_delta_wt_vs_mut"
 
-AA_GROUPS: dict[str, str] = {
-    "A": "hydrophobic",
-    "V": "hydrophobic",
-    "I": "hydrophobic",
-    "L": "hydrophobic",
-    "M": "hydrophobic",
-    "F": "hydrophobic",
-    "W": "hydrophobic",
-    "P": "hydrophobic",
-    "S": "polar",
-    "T": "polar",
-    "N": "polar",
-    "Q": "polar",
-    "Y": "polar",
-    "C": "polar",
-    "K": "positive",
-    "R": "positive",
-    "H": "positive",
-    "D": "negative",
-    "E": "negative",
-    "G": "special",
+# Multiple physicochemical scales per amino acid
+HYDRO = {  # Kyte-Doolittle
+    "A": 1.8,
+    "R": -4.5,
+    "N": -3.5,
+    "D": -3.5,
+    "C": 2.5,
+    "Q": -3.5,
+    "E": -3.5,
+    "G": -0.4,
+    "H": -3.2,
+    "I": 4.5,
+    "L": 3.8,
+    "K": -3.9,
+    "M": 1.9,
+    "F": 2.8,
+    "P": -1.6,
+    "S": -0.8,
+    "T": -0.7,
+    "W": -0.9,
+    "Y": -1.3,
+    "V": 4.2,
 }
+CHARGE = {  # at pH 7
+    "D": -1,
+    "E": -1,
+    "K": 1,
+    "R": 1,
+    "H": 0.5,
+}  # all others = 0
+VOLUME = {  # Zamyatnin, 1972 (Angstrom^3)
+    "G": 60,
+    "A": 88,
+    "S": 89,
+    "C": 108,
+    "D": 111,
+    "P": 112,
+    "N": 114,
+    "T": 116,
+    "E": 138,
+    "V": 140,
+    "Q": 143,
+    "H": 153,
+    "M": 162,
+    "I": 166,
+    "L": 166,
+    "K": 168,
+    "R": 173,
+    "F": 189,
+    "Y": 193,
+    "W": 227,
+}
+# Normalization ranges (max - min for each scale)
+HYDRO_RANGE = 9.0  # 4.5 - (-4.5)
+CHARGE_RANGE = 2.0  # 1 - (-1)
+VOLUME_RANGE = 167.0  # 227 - 60
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
 # ══════════════════════════════════════════════════════════════════════
-#
-# You can define as many internal functions as you need.
-# They will never be called by the pipeline.
-# By convention, prefix them with _ to indicate they are private.
-
-GROUP_DISTANCE = {
-    ("hydrophobic", "hydrophobic"): 0.0,
-    ("hydrophobic", "polar"): -0.3,
-    ("hydrophobic", "positive"): -0.6,
-    ("hydrophobic", "negative"): -0.8,
-    ("hydrophobic", "special"): -0.4,
-    ("polar", "polar"): 0.0,
-    ("polar", "positive"): -0.3,
-    ("polar", "negative"): -0.5,
-    ("polar", "special"): -0.2,
-    ("positive", "positive"): 0.0,
-    ("positive", "negative"): -1.0,
-    ("positive", "special"): -0.5,
-    ("negative", "negative"): 0.0,
-    ("negative", "special"): -0.5,
-    ("special", "special"): 0.0,
-}
 
 
-def _group_distance(g1: str, g2: str) -> float:
-    if (g1, g2) in GROUP_DISTANCE:
-        return GROUP_DISTANCE[(g1, g2)]
-    if (g2, g1) in GROUP_DISTANCE:
-        return GROUP_DISTANCE[(g2, g1)]
-    return -0.5
+def _get_hydrophobicity(aa: str) -> float:
+    """Get Kyte-Doolittle hydrophobicity value for an amino acid."""
+    return HYDRO.get(aa.upper(), 0.0)
+
+
+def _get_charge(aa: str) -> float:
+    """Get charge at pH 7 for an amino acid."""
+    return CHARGE.get(aa.upper(), 0.0)
+
+
+def _get_volume(aa: str) -> float:
+    return VOLUME.get(aa.upper(), 100.0)  # in Angstrom^3
+
+
+def _delta_at_position(wt_aa: str, mut_aa: str) -> float:
+    """
+    Calculate normalized Euclidean distance at a single position.
+
+    Returns 0 if amino acids are identical.
+    Otherwise computes sqrt((Δhyd)² + (Δcharge)² + (Δvolume)²)
+    where each delta is normalized by the scale's range.
+    """
+    if wt_aa == mut_aa:
+        return 0.0
+
+    # Normalized differences
+    dh = (_get_hydrophobicity(mut_aa) - _get_hydrophobicity(wt_aa)) / HYDRO_RANGE
+    dc = (_get_charge(mut_aa) - _get_charge(wt_aa)) / CHARGE_RANGE
+    dv = (_get_volume(mut_aa) - _get_volume(wt_aa)) / VOLUME_RANGE
+
+    return math.sqrt(dh**2 + dc**2 + dv**2)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -95,21 +131,22 @@ def _group_distance(g1: str, g2: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the delta WT vs MUT physicochemical score
-    A4 Delta WT vs MUT basé sur une matrice physico-chimique simplifiée.
-    Returns
+    """
+    Compute multi-property Euclidean distance between WT and mutant peptides.
 
     Parameters
     ----------
     candidate : Candidate
         - candidate.peptide_mut : mutated sequence
         - candidate.peptide_wt  : wild-type sequence
+
     Returns
     -------
     tuple[str, float]
         ("A_delta_wt_vs_mut", score) where:
-    Score proche de 0 : mutation conservative
-    Score négatif   : mutation non-conservative (impact forte)
+        - 0.0 : sequences identiques
+        - >0.0 : different sequences, la valeur est la distance cumulative de toutes les positions
+        Plus le score est haut, plus la mutation est radicale
     """
     try:
         wt = candidate.peptide_wt.strip().upper()
@@ -121,14 +158,9 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
         if wt == mut:
             return (SCORE_NAME, 0.0)
 
-        distances = []
-        for a, b in zip(wt, mut):
-            g1 = AA_GROUPS.get(a, "special")
-            g2 = AA_GROUPS.get(b, "special")
-            distances.append(_group_distance(g1, g2))
+        total_distance = sum(_delta_at_position(w, m) for w, m in zip(wt, mut))
 
-        score = sum(distances) / len(distances)
-        return (SCORE_NAME, score)
+        return (SCORE_NAME, total_distance)
 
     except Exception:
         return (SCORE_NAME, -1.0)
