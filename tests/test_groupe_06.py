@@ -13,13 +13,8 @@ Test coverage:
     8. Contract              — return type is always (str, float)
 """
 
-# Standard library imports
-# (none in this file)
-
-# Third-party imports
 import pytest
 
-# Local application imports
 from logic.types import Candidate
 from modules.groupe_06 import SCORE_NAME, get_score
 
@@ -113,7 +108,7 @@ def test_empty_peptide():
 
 
 def test_none_peptide(monkeypatch):
-    """None as git pushpeptide_mut → returns a float, does not crash."""
+    """None as peptide_mut → returns a float, does not crash."""
     candidate = _make_candidate("PLACEHOLDER")
     monkeypatch.setattr(candidate, "peptide_mut", None)
     name, value = get_score(candidate)
@@ -142,7 +137,7 @@ def test_integer_peptide(monkeypatch):
         "AAAAAAAAAA",  # 10-mer, ends A (moderate)
         "GILGFVFTL",  # known HLA-A*02:01 ligand, ends L
         "FMYSDFHFI",  # ends I (favoured)
-        "EIYKRWII",   # ends I (favoured)
+        "EIYKRWII",  # ends I (favoured)
     ],
 )
 def test_return_type_contract(peptide):
