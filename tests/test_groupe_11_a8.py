@@ -38,3 +38,29 @@ def test_score_value_finite():
     _, value = get_score(_make_candidate())
     assert not math.isnan(value)
     assert not math.isinf(value)
+
+
+def test_aromatic_at_p5_scores_higher():
+    # P4-P7 = A F T I -> 0.1, 0.9, 0.2, 0.3
+    _, score = get_score(
+        Candidate(
+            candidate_id="A8_ARO",
+            peptide_wt="AAAAAAAAA",
+            peptide_mut="SLMAFTIAV",
+            mut_pos_1based=5,
+        )
+    )
+    assert score > 0.3
+
+
+def test_glycine_at_p5_scores_lower():
+    # P4-P7 = A G T I -> 0.1, 0.0, 0.2, 0.3
+    _, score = get_score(
+        Candidate(
+            candidate_id="A8_GLY",
+            peptide_wt="AAAAAAAAA",
+            peptide_mut="SLMAGTIAV",
+            mut_pos_1based=5,
+        )
+    )
+    assert score < 0.2
