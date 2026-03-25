@@ -8,12 +8,11 @@ from logic.types import Candidate
 from modules.groupe_11_a8 import get_score
 
 
-def _make_candidate() -> Candidate:
+def _make_candidate(
+    wt: str = "AAAAAAAAA", mut: str = "AAAAAAAAV", pos: int = 9
+) -> Candidate:
     return Candidate(
-        candidate_id="TEST_01",
-        peptide_wt="AAAAAAAAA",
-        peptide_mut="AAAAAAAAV",
-        mut_pos_1based=9,
+        candidate_id="TEST_01", peptide_wt=wt, peptide_mut=mut, mut_pos_1based=pos
     )
 
 
@@ -40,27 +39,16 @@ def test_score_value_finite():
     assert not math.isinf(value)
 
 
+# A8-specific edge case tests
+
+
 def test_aromatic_at_p5_scores_higher():
     # P4-P7 = A F T I -> 0.1, 0.9, 0.2, 0.3
-    _, score = get_score(
-        Candidate(
-            candidate_id="A8_ARO",
-            peptide_wt="AAAAAAAAA",
-            peptide_mut="SLMAFTIAV",
-            mut_pos_1based=5,
-        )
-    )
-    assert score > 0.3
+    _, score = get_score(_make_candidate("AAAAAAAAA", "SLMAFTIAV", 5))
+    assert score == 0.375
 
 
 def test_glycine_at_p5_scores_lower():
     # P4-P7 = A G T I -> 0.1, 0.0, 0.2, 0.3
-    _, score = get_score(
-        Candidate(
-            candidate_id="A8_GLY",
-            peptide_wt="AAAAAAAAA",
-            peptide_mut="SLMAGTIAV",
-            mut_pos_1based=5,
-        )
-    )
-    assert score < 0.2
+    _, score = get_score(_make_candidate("AAAAAAAAA", "SLMAGTIAV", 5))
+    assert score == 0.15
