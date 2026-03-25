@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from logic.types import Candidate
 from modules.groupe_11_a8 import get_score
 
@@ -51,4 +53,4 @@ def test_aromatic_at_p5_scores_higher():
 def test_glycine_at_p5_scores_lower():
     # P4-P7 = A G T I -> 0.1, 0.0, 0.2, 0.3
     _, score = get_score(_make_candidate("AAAAAAAAA", "SLMAGTIAV", 5))
-    assert score == 0.15
+    assert score == pytest.approx(0.15)
