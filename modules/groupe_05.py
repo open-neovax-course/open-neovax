@@ -145,7 +145,8 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         ("A_delta_wt_vs_mut", score) where:
         - 0.0 : sequences identiques
-        - >0.0 : different sequences, la valeur est la distance cumulative de toutes les positions
+        - >0.0 : different sequences, la valeur est la distance cumulative de 
+        toutes les positions
         Plus le score est haut, plus la mutation est radicale
     """
     try:

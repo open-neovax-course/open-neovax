@@ -73,7 +73,8 @@ def test_different_lengths():
 
 def test_granularity():
     """
-    L -> D (hydrophobic -> negative) should score worse than L-> S (hydrophobic -> polar)
+    L -> D (hydrophobic -> negative) should score worse than L-> S (hydrophobic 
+    -> polar)
 
     """
     cand_negative = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SDMAFTIAV")
