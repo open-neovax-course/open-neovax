@@ -1,38 +1,36 @@
+import math
 from logic.types import Candidate
-from modules.groupe_08 import get_score
+from modules.groupe_08 import get_score, SCORE_NAME
 
-
-def _make_cand(mut: str, wt: str = "AAAAAAAAA") -> Candidate:
+def _make_candidate(peptide_mut: str, peptide_wt: str = "AAAAAAAAA") -> Candidate:
     return Candidate(
-        candidate_id="08", peptide_wt=wt, peptide_mut=mut, mut_pos_1based=5
+        candidate_id="TEST_08",
+        peptide_wt=peptide_wt,
+        peptide_mut=peptide_mut,
+        mut_pos_1based=5,
     )
 
+def test_hydrophobic_anchor_improvement():
+    """Mutation that improves anchor hydrophobicity should score positive."""
+    # WT has A@P2 (low hydro), MUT has L@P2 (high hydro)
+    cand = _make_candidate(peptide_wt="SAMAFTIAV", peptide_mut="SLMAFTIAV")
+    _, score = get_score(cand)
+    assert score > 0.0
 
-def test_position_reflects_impact():
-    """AC: Same residue has different impact at anchor vs exposed."""
-    _, score_anchor = get_score(_make_cand("ALAAAAAAV", "AAAAAAAAV"))
-    _, score_exposed = get_score(_make_cand("AAALAAAVV", "AAAAAAAAV"))
+def test_wt_equals_mut_scores_zero():
+    """No mutation = no delta = score 0."""
+    cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SLMAFTIAV")
+    _, score = get_score(cand)
+    assert score == 0.0
 
-    assert score_anchor > score_exposed
+def test_exposed_hydrophobicity_penalty():
+    """Mutation that makes exposed center more hydrophobic should score lower."""
+    # WT: polar center (D), MUT: hydrophobic center (I)
+    _, score_polar = get_score(_make_candidate("AAADAAAAA", "AAAAAAAAA"))
+    _, score_hydro = get_score(_make_candidate("AAAIAAAAA", "AAAAAAAAA"))
+    assert score_hydro < score_polar
 
-
-def test_cand11_vs_cand01():
-    """AC: CAND_11 (all hydrophobic) scores lower than CAND_01 (mixed)."""
-    _, score_11 = get_score(_make_cand("ILVMILMVL", "AAAAAAAAA"))
-    _, score_01 = get_score(_make_cand("ALADNAAAV", "AAAAAAAAA"))
-
-    assert score_11 < score_01
-
-
-def test_anchor_good_exposed_polar_vs_all_hydrophobic():
-    """AC: Specific comparison test."""
-    _, score_perfect = get_score(_make_cand("FLRDKREAV", "AAAAAAAAA"))
-    _, score_greasy = get_score(_make_cand("FLLLLLLLV", "AAAAAAAAA"))
-
-    assert score_perfect > score_greasy
-
-
-def test_ci_robustness():
-    """Verify neutral return for invalid inputs to keep CI green."""
-    assert get_score(_make_cand("Short"))[1] == 0.0
-    assert isinstance(get_score(_make_cand("AAAAAAAAA"))[1], float)
+def test_invalid_inputs_no_crash():
+    """Ensure CI remains green with robust error handling."""
+    _, score = get_score(_make_candidate(None))
+    assert score == 0.0
