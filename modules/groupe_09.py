@@ -8,6 +8,7 @@ Highly positive or highly negative peptides are penalized.
 
 This is a qualitative proxy, not an exact physicochemical measurement.
 """
+
 from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
