@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 from logic.types import Candidate
-from modules.groupe_11 import INVALID_PENALTY, get_score
+from modules.groupe_11_d3 import INVALID_PENALTY, get_score
 
 
 def _make_candidate(
