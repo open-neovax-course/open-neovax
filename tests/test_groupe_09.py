@@ -1,5 +1,3 @@
-import pytest
-
 from logic.types import Candidate
 from modules.groupe_09 import get_score
 
