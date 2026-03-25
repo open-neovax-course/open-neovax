@@ -8,7 +8,7 @@ Highly positive or highly negative peptides are penalized.
 
 This is a qualitative proxy, not an exact physicochemical measurement.
 """
-=============================
+# =============================
 from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -48,7 +48,7 @@ def _compute_net_charge(peptide: str) -> float:
     # normalize by peptide length to penalize extremes in longer peptides
     return net / len(peptide)
 
-def _compute_something(peptide: str) -> float:
+def _compute_score(net_charge: float) -> float:
     """
     Penalize extreme charges:
     - net_charge near 0 → score close to 0
