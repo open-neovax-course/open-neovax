@@ -1,27 +1,18 @@
 """
 Groupe 09
 Template module — Open-NeoVax
-=============================
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
+Hypothesis:
+Peptides with a moderate overall charge are favored.
+Highly positive or highly negative peptides are penalized.
 
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+This is a qualitative proxy, not an exact physicochemical measurement.
 """
-
+=============================
 from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# ──────────────────────────────────────────────────────────────────────
-# Import the Candidate type.
-# TYPE_CHECKING is False at runtime → no circular import issues.
-# This still lets your editor (VS Code, PyCharm) provide autocompletion.
-# ──────────────────────────────────────────────────────────────────────
 if TYPE_CHECKING:
     from logic.types import Candidate
 
@@ -30,70 +21,66 @@ if TYPE_CHECKING:
 #  CONSTANTS
 # ══════════════════════════════════════════════════════════════════════
 
-# Path to the data/ directory at the project root.
-# Useful if your module needs to load an external file
-# (PSSM matrix, self-peptide list, etc.).
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+SCORE_NAME = "A_net_charge"
 
-# Name of the score returned by this module.
-# IMPORTANT: this name must be unique across all modules!
-# Convention: <department>_<concept>[_detail]
-SCORE_NAME = "template_score"
+# ──────────────── Charge table ──────────────
+# K,R,H are considered positively charged
+# D,E are negatively charged
+# All others are 0
+AA_CHARGE = {
+    "K": 1,
+    "R": 1,
+    "H": 1,  # can be considered weakly positive
+    "D": -1,
+    "E": -1
+}
 
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
 # ══════════════════════════════════════════════════════════════════════
-#
-# You can define as many internal functions as you need.
-# They will never be called by the pipeline.
-# By convention, prefix them with _ to indicate they are private.
-
+def _compute_net_charge(peptide: str) -> float:
+    """Compute a simple net charge proxy for the peptide."""
+    if not peptide:
+        return 0.0
+    net = sum(AA_CHARGE.get(aa.upper(), 0) for aa in peptide)
+    # normalize by peptide length to penalize extremes in longer peptides
+    return net / len(peptide)
 
 def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
     """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
-
+    Penalize extreme charges:
+    - net_charge near 0 → score close to 0
+    - high positive or negative net_charge → negative score
+    """
+    # simple heuristic: subtract squared deviation from 0
+    return 0.0 - net_charge**2
 
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
 
-
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
-
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
+    """
+    Compute the net charge / pI proxy score for a candidate peptide.
 
     Parameters
     ----------
     candidate : Candidate
-        Object containing neo-epitope information:
-        - candidate.peptide_mut  (str)  : mutated sequence
-        - candidate.peptide_wt   (str)  : wild-type sequence
-        - candidate.mut_pos_1based (int): mutation position
-        - candidate.gene         (str)  : source gene
-        - candidate.hla_allele   (str)  : target HLA allele
+        Must have attribute peptide_mut (str)
 
     Returns
     -------
     tuple[str, float]
-        (score_name, score_value)
+        (SCORE_NAME, score)
     """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
+    peptide = getattr(candidate, "peptide_mut", "")
 
-    # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+    # handle invalid inputs
+    if not isinstance(peptide, str) or len(peptide) == 0 or not peptide.isalpha():
+        return SCORE_NAME, -1.0  # penalty for invalid/empty peptide
 
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    net_charge = _compute_net_charge(peptide)
+    score_value = _compute_score(net_charge)
+    return SCORE_NAME, float(score_value)
