@@ -23,7 +23,7 @@
 | 08 | Quach | Martine | LuuiChi | |
 | 08 | Ravelomanna | Charlotte | charlottecrg | |
 | 09 | Bouazza | Zakaria | Zakaria-BOUAZZA | — |
-| 09 | Saighi | Achraf | — | |
+| 09 | Saighi | Achraf | achraf-sg | |
 | 10 | Mattar | Mario | mmattar18 | — |
 | 10 | Azar | Elias | — | |
 | 11 | Al Masri | Reina | reina-m | `groupe-11` |
@@ -37,6 +37,7 @@
 | Group | Module | Description | Difficulty | Department |
 |-------|--------|-------------|:----------:|:----------:|
 | 01 | A3 | Complexity / Shannon entropy | ★★☆ | A |
+| 01 | A9 | Mutation surprisal — statistical rarity | ★★★ | A |
 | 02 | C2 | Anchor P9 — PSSM lookup | ★★☆ | C |
 | 02 | D2 | Self approx match — Hamming distance | ★★★ | D |
 | 03 | C1 | Anchor P2 — PSSM lookup | ★★☆ | C |
@@ -60,7 +61,7 @@
 
 | Department | Groups | Active modules |
 |------------|--------|----------------|
-| A — Peptide properties | 01, 05, 08, 09, 11 | A1, A2, A3, A4, A8 |
+| A — Peptide properties | 01, 05, 08, 09, 11 | A1, A2, A3, A4, A8, A9 |
 | B — Processing | 06, 07, 10 | B1, B2, B3, B4, B5 |
 | C — HLA binding | 02, 03, 04 | C1, C2, C3, C4, C6 |
 | D — Self / safety | 02, 11, 12 | D1, D2, D3, D5 |
