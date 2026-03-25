@@ -1,6 +1,6 @@
-from modules.groupe_09 import get_score
 import pytest
 
+from modules.groupe_09 import get_score
 
 class DummyCandidate:
     def __init__(self, sequence):
