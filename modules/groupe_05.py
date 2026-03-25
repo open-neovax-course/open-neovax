@@ -30,27 +30,30 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "a4_delta_wt_vs_mut"
+SCORE_NAME = "A_delta_wt_vs_mut"
 
-
-# ══════════════════════════════════════════════════════════════════════
-#  INTERNAL FUNCTIONS (private)
-# ══════════════════════════════════════════════════════════════════════
-#
-# You can define as many internal functions as you need.
-# They will never be called by the pipeline.
-# By convention, prefix them with _ to indicate they are private.
-
-
-def _compute_something(peptide: str) -> float:
-    """Example internal function.
-
-    Replace this computation with your biological logic.
-    """
-    # A constant score for demonstration purposes.
-    # Your real module will do something useful here!
-    _ = peptide  # avoid "unused parameter" warning
-    return 0.0
+AA_GROUPS: dict[str, str] = {
+    "A": "hydrophobic",
+    "V": "hydrophobic",
+    "I": "hydrophobic",
+    "L": "hydrophobic",
+    "M": "hydrophobic",
+    "F": "hydrophobic",
+    "W": "hydrophobic",
+    "P": "hydrophobic",
+    "S": "polar",
+    "T": "polar",
+    "N": "polar",
+    "Q": "polar",
+    "Y": "polar",
+    "C": "polar",
+    "K": "positive",
+    "R": "positive",
+    "H": "positive",
+    "D": "negative",
+    "E": "negative",
+    "G": "special",
+}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -59,33 +62,38 @@ def _compute_something(peptide: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
-
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
+    """Compute the delta WT vs MUT physicochemical score
 
     Parameters
     ----------
     candidate : Candidate
-        Object containing neo-epitope information:
-        - candidate.peptide_mut  (str)  : mutated sequence
-        - candidate.peptide_wt   (str)  : wild-type sequence
-        - candidate.mut_pos_1based (int): mutation position
-        - candidate.gene         (str)  : source gene
-        - candidate.hla_allele   (str)  : target HLA allele
+        - candidate.peptide_mut : mutated sequence
+        - candidate.peptide_wt  : wild-type sequence
 
     Returns
     -------
     tuple[str, float]
-        (score_name, score_value)
+        ("A_delta_wt_vs_mut", score) where:
+        - score = 0.0  : conservative mutation (same physicochemical group)
+        - score > 0.0  : non-conservative mutation (different group)
+        - score = -1.0 : invalid input (empty, different lengths, error)
     """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
+    try:
+        mut = candidate.peptide_mut.strip().upper()
+        wt = candidate.peptide_wt.strip().upper()
 
-    # 2. Compute the score using your logic
-    score_value = _compute_something(peptide)
+        if not mut or not wt or len(mut) != len(wt):
+            return (SCORE_NAME, -1.0)
+        if mut == wt:
+            return (SCORE_NAME, 0.0)
 
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+        total = 0
+        for a, b in zip(wt, mut):
+            if AA_GROUPS.get(a, "?") != AA_GROUPS.get(b, "?"):
+                total += 1
+
+        score = total / len(mut)
+        return (SCORE_NAME, score)
+
+    except Exception:
+        return (SCORE_NAME, -1.0)

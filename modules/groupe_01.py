@@ -39,7 +39,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "A_complexity_shannon"
+SCORE_NAME = "A_hybrid_complexity"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -49,6 +49,50 @@ SCORE_NAME = "A_complexity_shannon"
 # You can define as many internal functions as you need.
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
+
+PHYSICO_GROUPS = {
+    "A": "hydrophobic",
+    "V": "hydrophobic",
+    "I": "hydrophobic",
+    "L": "hydrophobic",
+    "M": "hydrophobic",
+    "F": "hydrophobic",
+    "W": "hydrophobic",
+    "P": "hydrophobic",
+    "S": "polar",
+    "T": "polar",
+    "N": "polar",
+    "Q": "polar",
+    "Y": "polar",
+    "C": "polar",
+    "K": "positive",
+    "R": "positive",
+    "H": "positive",
+    "D": "negative",
+    "E": "negative",
+    "G": "special",
+}
+
+
+def _get_group_entropy(peptide: str) -> float:
+    groups = [PHYSICO_GROUPS.get(aa, "unknown") for aa in peptide]
+    # compute Shannon entropy on group frequencies
+    H = 0.0
+    freq_dict = dict()
+    N = len(groups)
+    Hmax = np.log2(5)
+
+    for i in groups:
+        if i in freq_dict.keys():
+            freq_dict[i] += 1
+        else:
+            freq_dict[i] = 1
+
+    for char in freq_dict:
+        pi = freq_dict[char] / N
+        H += pi * np.log2(pi)
+
+    return float(-1 * H / Hmax)
 
 
 def _get_shannon(peptide: str) -> float:
@@ -102,7 +146,11 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
             return (SCORE_NAME, 0.0)
 
     # 2. Compute the score using your logic
-    score_value = _get_shannon(peptide)
+    mixed_score = (_get_shannon(peptide) + _get_group_entropy(peptide)) * 1 / 2
+    k = 10  # Pente de la courbe (plus k est haut, plus c'est tranché)
+    x0 = 0.5  # Le point d'inflexion
+
+    score_value = 1 / (1 + np.exp(-k * (mixed_score - x0)))
 
     # 3. Return the result in the expected format
     return (SCORE_NAME, score_value)
