@@ -34,7 +34,7 @@ AA_CHARGE = {
     "R": 1,
     "H": 1,  # can be considered weakly positive
     "D": -1,
-    "E": -1
+    "E": -1,
 }
 
 
@@ -49,6 +49,7 @@ def _compute_net_charge(peptide: str) -> float:
     # normalize by peptide length to penalize extremes in longer peptides
     return net / len(peptide)
 
+
 def _compute_score(net_charge: float) -> float:
     """
     Penalize extreme charges:
@@ -58,9 +59,11 @@ def _compute_score(net_charge: float) -> float:
     # simple heuristic: subtract squared deviation from 0
     return 0.0 - net_charge**2
 
+
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
 # ══════════════════════════════════════════════════════════════════════
+
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
