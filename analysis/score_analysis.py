@@ -107,48 +107,84 @@ LABEL_MAP = {"GOLD": 4, "GOOD": 3, "MEDIOCRE": 2, "BAD": 1, "TRAP": 0, "NEUTRAL"
 
 
 def train_and_evaluate():
-    """
-    YOUR WORK HERE.
+    import numpy as np
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_score
+    from sklearn.preprocessing import StandardScaler
 
-    You have two CSV files in analysis/:
-        - scores_patient_one.csv  (75 candidates — training)
-        - scores_patient_zero.csv (18 candidates — validation)
+    # -------------------------
+    # LOAD DATA
+    # -------------------------
+    train = pd.read_csv("analysis/scores_patient_one.csv")
+    test = pd.read_csv("analysis/scores_patient_zero.csv")
 
-    Each row = one candidate. Columns:
-        - candidate_id : identifier
-        - label        : GOLD, GOOD, MEDIOCRE, BAD, or TRAP
-        - remaining columns : one per scoring module (float values)
+    # -------------------------
+    # LABEL ENCODING
+    # -------------------------
+    def encode(label):
+        if label in ["GOLD", "GOOD"]:
+            return 1
+        elif label in ["BAD", "TRAP"]:
+            return 0
+        else:
+            return np.nan
 
-    Objectives:
-        1. Train a model to classify candidates as good (GOLD/GOOD) vs bad (BAD/TRAP)
-        2. Evaluate with cross-validation on patient_one
-        3. Validate on patient_zero — does CAND_01 (GOLD) rank first?
-        4. Extract feature importance — which modules matter most?
+    train = train.dropna(subset=["label"])
+    train["y"] = train["label"].apply(encode)
+    train = train.dropna(subset=["y"])
 
-    Suggested approach:
-        - Load the CSV with pandas
-        - Convert labels to binary: GOLD/GOOD = 1, BAD/TRAP = 0 (remove MEDIOCRE)
-        - Standardize features (StandardScaler)
-        - Try at least 2 models (e.g. LogisticRegression, RandomForestClassifier)
-        - Use cross_val_score for evaluation
-        - Use feature_importances_ (Random Forest) to find top modules
-        - Predict on patient_zero and print the final ranking
+    X_train = train.drop(columns=["candidate_id", "label", "y"])
+    y_train = train["y"]
 
-    Useful imports:
-        import pandas as pd
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.model_selection import cross_val_score
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.metrics import classification_report
-    """
-    print("TODO: implement train_and_evaluate()")
-    print()
-    print("Start by loading the score matrices:")
-    print("  analysis/scores_patient_one.csv  (training)")
-    print("  analysis/scores_patient_zero.csv (validation)")
-    print()
-    print("See the docstring above for guidance.")
+    X_test = test.drop(columns=["candidate_id", "label"])
+
+    # -------------------------
+    # SCALE FEATURES
+    # -------------------------
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # -------------------------
+    # MODELS
+    # -------------------------
+    models = {
+        "LogReg": LogisticRegression(max_iter=1000),
+        "RandomForest": RandomForestClassifier(n_estimators=200, random_state=42),
+    }
+
+    print("\n=== CROSS VALIDATION ===")
+
+    for name, model in models.items():
+        scores = cross_val_score(model, X_train_scaled, y_train, cv=5)
+        print(f"{name}: {scores.mean():.3f}")
+
+    # -------------------------
+    # FIT BEST MODEL (RF)
+    # -------------------------
+    rf = RandomForestClassifier(n_estimators=200, random_state=42)
+    rf.fit(X_train_scaled, y_train)
+
+    # -------------------------
+    # FEATURE IMPORTANCE
+    # -------------------------
+    importances = pd.Series(rf.feature_importances_, index=X_train.columns)
+    importances = importances.sort_values(ascending=False)
+
+    print("\n=== FEATURE IMPORTANCE ===")
+    print(importances.head(10))
+
+    # -------------------------
+    # PREDICT TEST SET
+    # -------------------------
+    test["score"] = rf.predict_proba(X_test_scaled)[:, 1]
+
+    ranking = test.sort_values("score", ascending=False)
+
+    print("\n=== FINAL RANKING (patient_zero) ===")
+    print(ranking[["candidate_id", "score"]].head(18))
 
 
 # ══════════════════════════════════════════════════════════════════════
