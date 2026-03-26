@@ -99,56 +99,18 @@ def generate_score_matrix(patient_file: str = "patient_one.csv") -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  STEP 2 — Train and evaluate models (YOUR WORK)
+#  STEP 2 — Train and evaluate models
+#
+#  DO NOT implement your model here.
+#  Create your own file: analysis/groupe_XX_model.py
+#  See docs/ml-guide.md for the full guide and issue #39 on GitHub.
 # ══════════════════════════════════════════════════════════════════════
-
-# Label encoding: higher = better candidate
-LABEL_MAP = {"GOLD": 4, "GOOD": 3, "MEDIOCRE": 2, "BAD": 1, "TRAP": 0, "NEUTRAL": 2}
 
 
 def train_and_evaluate():
-    """
-    YOUR WORK HERE.
-
-    You have two CSV files in analysis/:
-        - scores_patient_one.csv  (75 candidates — training)
-        - scores_patient_zero.csv (18 candidates — validation)
-
-    Each row = one candidate. Columns:
-        - candidate_id : identifier
-        - label        : GOLD, GOOD, MEDIOCRE, BAD, or TRAP
-        - remaining columns : one per scoring module (float values)
-
-    Objectives:
-        1. Train a model to classify candidates as good (GOLD/GOOD) vs bad (BAD/TRAP)
-        2. Evaluate with cross-validation on patient_one
-        3. Validate on patient_zero — does CAND_01 (GOLD) rank first?
-        4. Extract feature importance — which modules matter most?
-
-    Suggested approach:
-        - Load the CSV with pandas
-        - Convert labels to binary: GOLD/GOOD = 1, BAD/TRAP = 0 (remove MEDIOCRE)
-        - Standardize features (StandardScaler)
-        - Try at least 2 models (e.g. LogisticRegression, RandomForestClassifier)
-        - Use cross_val_score for evaluation
-        - Use feature_importances_ (Random Forest) to find top modules
-        - Predict on patient_zero and print the final ranking
-
-    Useful imports:
-        import pandas as pd
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.model_selection import cross_val_score
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.metrics import classification_report
-    """
-    print("TODO: implement train_and_evaluate()")
-    print()
-    print("Start by loading the score matrices:")
-    print("  analysis/scores_patient_one.csv  (training)")
-    print("  analysis/scores_patient_zero.csv (validation)")
-    print()
-    print("See the docstring above for guidance.")
+    """Placeholder — see docs/ml-guide.md for instructions."""
+    print("Create your model in analysis/groupe_XX_model.py")
+    print("See docs/ml-guide.md for the full guide.")
 
 
 # ══════════════════════════════════════════════════════════════════════
