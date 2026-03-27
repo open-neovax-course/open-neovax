@@ -31,6 +31,7 @@
 | 12 | Chaffort | Lucas | LucasChaff | — |
 | 12 | Bouzada | Yacine | — | |
 | 12 | BA | Pape-Oumar | — | |
+| 13 | Essome Ndoumin | Christian | Essome12 | |
 
 ## Module assignments
 
