@@ -25,7 +25,7 @@
 | 09 | Bouazza | Zakaria | Zakaria-BOUAZZA | — |
 | 09 | Saighi | Achraf | achraf-sg | |
 | 10 | Mattar | Mario | mmattar18 | — |
-| 10 | Azar | Elias | — | |
+| 10 | Azar | Elias | El1as630 | |
 | 11 | Al Masri | Reina | reina-m | `groupe-11` |
 | 11 | El Kassabby | Mahmoud | mkassaby | |
 | 12 | Chaffort | Lucas | LucasChaff | — |
