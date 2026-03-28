@@ -103,30 +103,22 @@ def _score_cterminus(peptide: str) -> float:
     return CTERMINUS_SCORES.get(last_aa, 0.0)
 
 
-def _charge_score(peptide: str) -> float:
-    """Penalize extreme net charge or too many charged residues."""
-    positive_count = sum(1 for aa in peptide if aa in POSITIVE_RESIDUES)
-    negative_count = sum(1 for aa in peptide if aa in NEGATIVE_RESIDUES)
-    charged_count = positive_count + negative_count
+def _score_charge(peptide: str) -> float:
+    """Return a score based on the net charge of the peptide.
 
-    net_charge_ratio = (positive_count - negative_count) / len(peptide)
-    charged_ratio = charged_count / len(peptide)
+    - Moderate charge (|q| <= CHARGE_THRESHOLD) -> neutral score (0.0).
+    - Excessive charge -> progressive penalty proportional to the excess.
 
-    score = 0.4
-    if abs(net_charge_ratio) > MAX_ABS_CHARGE_RATIO:
-        score -= 0.7
-    if charged_ratio > EXCESS_CHARGED_RATIO:
-        score -= 0.7
-    return score
-
-
-def _compute_tap_score(peptide: str) -> float:
-    """Compute the TAP transport proxy score for a valid peptide."""
-    return _cterm_score(peptide) + _hydrophobicity_score(peptide) + _charge_score(peptide)
-#    # Normalisation entre -1 et 1 (ajuste les bornes selon tes tests)
-#     # Si nos scores vont de -2.5 à +2.5 par exemple :
-#     normalized = max(-1.0, min(1.0, raw_score / 2.5))
-#     return normalized
+    The penalty is capped at -1.0 to remain on a consistent scale
+    with the C-terminal score.
+    """
+    net_charge = sum(AA_CHARGE.get(aa, 0) for aa in peptide)
+    excess = abs(net_charge) - CHARGE_THRESHOLD
+    if excess <= 0:
+        return 0.0
+    # Progressive penalty, capped at -1.0
+    penalty = -min(excess * 0.2, 1.0)
+    return penalty
 
 
 # ══════════════════════════════════════════════════════════════════════
