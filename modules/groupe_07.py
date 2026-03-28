@@ -1,14 +1,11 @@
 """
-Template module — Open-NeoVax
-=============================
+Groupe 07 - TAP transport scoring module(B2)
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
-
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+A peptide is more likely to be transported into the ER by TAP
+if its C-terminal residue is hydrophobic and its overall net charge is moderate.
+Score > 0: compatible with TAP transport.
+Score < 0: disfavored by TAP.
+Score -2.0: invalid peptide (wrong length or non-standard amino acids).
 """
 
 from __future__ import annotations
@@ -16,11 +13,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# ──────────────────────────────────────────────────────────────────────
-# Import the Candidate type.
-# TYPE_CHECKING is False at runtime → no circular import issues.
-# This still lets your editor (VS Code, PyCharm) provide autocompletion.
-# ──────────────────────────────────────────────────────────────────────
 if TYPE_CHECKING:
     from logic.types import Candidate
 
@@ -29,66 +21,80 @@ if TYPE_CHECKING:
 #  CONSTANTS
 # ══════════════════════════════════════════════════════════════════════
 
-# Path to the data/ directory at the project root.
-# Useful if your module needs to load an external file
-# (PSSM matrix, self-peptide list, etc.).
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
-# Name of the score returned by this module.
-# IMPORTANT: this name must be unique across all modules!
-# Convention: <department>_<concept>[_detail]
-SCORE_NAME = "B_TAP_score"
+SCORE_NAME = "B_tap_transport_score"
+VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
+MIN_LENGTH = 8
+MAX_LENGTH = 11
 
-#valide acides animés :
-VALID_AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
+# Threshold beyond which the net charge is considered excessive.
+CHARGE_THRESHOLD = 2
 
-# Acides aminés hydrophobes (favorisés par TAP)
-HYDROPHOBIC_RESIDUES = set("AILMFWVY")
+# Penalty applied when the peptide is invalid
+INVALID_PENALTY = -2.0
 
-# Acides aminés chargés (défavorisés par TAP)
-CHARGED_AA =set("DEKRH")
-POSITIVE_RESIDUES = set("KRH")
-NEGATIVE_RESIDUES = set("DE")
+# Relative weights of the two criteria in the final score
+WEIGHT_CTERMINUS = 0.6
+WEIGHT_CHARGE = 0.4
 
-ALLOWED_LENGTHS = range(8, 12)
-
-
-# Préférences pour le C-terminus 
-# Plus le score est élevé, plus l'acide aminé est favorisé
-C_TERMINAL_BONUS = {
+# TAP C-terminal preference scores, based on van Endert et al.(1994).
+# Hydrophobic/aromatic residues are favored; charged/rigid are penalized.
+CTERMINUS_SCORES: dict[str, float] = {
+    # Strongly favored (hydrophobic / aromatic)
     "L": 1.0,
-    "I": 0.9,
-    "V": 0.9,
-    "F": 0.8,
-    "Y": 0.7,
+    "I": 1.0,
+    "V": 0.8,
+    "F": 1.0,
+    "Y": 0.8,
     "M": 0.7,
-    "A": 0.4,
-    "T": 0.2,
-    "S": 0.1,
-    "W": 0.5,
+    "W": 0.6,
+    # Neutral
+    "A": 0.2,
+    "G": 0.0,
+    "S": 0.0,
+    "T": 0.0,
+    "C": 0.1,
+    "N": 0.0,
+    "Q": 0.0,
+    "H": -0.2,
+    # Disfavored (charged or rigid)
+    "P": -1.0,
+    "D": -0.8,
+    "E": -0.8,
+    "K": -0.6,
+    "R": -0.6,
 }
 
-EMPTY_OR_INVALID_PENALTY = -2.0
-OUT_OF_RANGE_LENGTH_PENALTY = -1.5
-
-HYDROPHOBIC_TARGET_RATIO = 0.40
-HYDROPHOBIC_TOLERANCE = 0.25
-MAX_ABS_CHARGE_RATIO = 0.35
-EXCESS_CHARGED_RATIO = 0.45
-
+# Net charge per amino acid
+AA_CHARGE: dict[str, int] = {
+    "K": +1,
+    "R": +1,
+    "D": -1,
+    "E": -1,
+    "H": 0,   # histidine treated as neutral
+}
 
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
 # ══════════════════════════════════════════════════════════════════════
-#
-# You can define as many internal functions as you need.
-# They will never be called by the pipeline.
-# By convention, prefix them with _ to indicate they are private.
+
 
 def _is_valid_peptide(peptide: str) -> bool:
-    """Renvoie True si le peptide ne contient que des acides aminés standard."""
-    return bool(peptide) and all(residue in VALID_AMINO_ACIDS for residue in peptide)
+    """Check that the peptide can be processed by this module.
+    A peptide is valid if:
+    - it is not empty,
+    - its length is between MIN_LENGTH and MAX_LENGTH,
+    - it contains only standard amino acids.
+    """
+    if not peptide:
+        return False
+    if not (MIN_LENGTH <= len(peptide) <= MAX_LENGTH):
+        return False
+    if not set(peptide).issubset(VALID_AA):
+        return False
+    return True
 
 
 def _cterm_score(peptide: str) -> float:
