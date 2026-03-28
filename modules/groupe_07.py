@@ -72,7 +72,7 @@ AA_CHARGE: dict[str, int] = {
     "R": +1,
     "D": -1,
     "E": -1,
-    "H": 0,   # histidine treated as neutral
+    "H": 0,  # histidine treated as neutral
 }
 
 
