@@ -97,20 +97,10 @@ def _is_valid_peptide(peptide: str) -> bool:
     return True
 
 
-def _cterm_score(peptide: str) -> float:
-    """Le C-terminus, un facteur clé de la préférence de transport TAP."""
-    return C_TERMINAL_BONUS.get(peptide[-1], -0.6)
-
-
-def _hydrophobicity_score(peptide: str) -> float:
-    """privilégier une proportion équilibrée de résidus hydrophobes."""
-    hydrophobic_count = sum(1 for aa in peptide if aa in HYDROPHOBIC_RESIDUES)
-    ratio = hydrophobic_count / len(peptide)
-    deviation = abs(ratio - HYDROPHOBIC_TARGET_RATIO)
-
-    if deviation <= HYDROPHOBIC_TOLERANCE:
-        return 0.8 - (deviation / HYDROPHOBIC_TOLERANCE) * 0.8
-    return -0.8
+def _score_cterminus(peptide: str) -> float:
+    """Return the TAP preference score for the C-terminal residue."""
+    last_aa = peptide[-1]
+    return CTERMINUS_SCORES.get(last_aa, 0.0)
 
 
 def _charge_score(peptide: str) -> float:
