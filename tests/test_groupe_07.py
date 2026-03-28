@@ -296,3 +296,85 @@ def test_consistency_wt_vs_mut():
     assert score_mut == score_mut2
 
 
+
+# ══════════════════════════════════════════════════════════════════════
+#  Mathematical Property Tests
+# ══════════════════════════════════════════════════════════════════════
+
+def test_score_monotonicity():
+    """Verify that score is monotonic: better C-terminus yields better score."""
+    peptides = [
+        ("SLMAFTIAL", 1.0),   # L
+        ("SLMAFTIAV", 0.8),   # V  
+        ("SLMAFTIAA", 0.2),   # A
+        ("SLMAFTIAS", 0.0),   # S
+        ("SLMAFTIAK", -0.6),  # K
+        ("SLMAFTIAP", -1.0),  # P
+    ]
+    
+    scores = []
+    for pep, _ in peptides:
+        _, score = get_score(SimpleNamespace(peptide_mut=pep))
+        scores.append(score)
+    
+    for i in range(len(scores)-1):
+        assert scores[i] >= scores[i+1], \
+            f"Order not preserved: {peptides[i][0]} ({scores[i]:.3f}) > {peptides[i+1][0]} ({scores[i+1]:.3f})"
+
+
+def test_charge_penalty_progressive():
+    """Verify that charge penalty increases progressively with excess charge."""
+    base_pep = "SLMAFTIAL"  # L at C-terminus, 0 net charge
+    
+    scores = []
+    charges = []
+    
+    for k_count in range(0, 6):
+        pep = "K" * k_count + base_pep
+        _, score = get_score(SimpleNamespace(peptide_mut=pep))
+        scores.append(score)
+        charges.append(k_count)
+    
+    for i in range(1, len(scores)):
+        if charges[i] > CHARGE_THRESHOLD:
+            assert scores[i] <= scores[i-1], \
+                f"Score should decrease: charge {charges[i-1]}→{charges[i]}, score {scores[i-1]:.3f}→{scores[i]:.3f}"
+
+
+def test_score_range():
+    """Verify that all scores fall within the expected range [-1.0, 0.6]."""
+    test_peptides = [
+        "SLMAFTIAL",   # L - good
+        "SLMAFTIAV",   # V - moderate
+        "SLMAFTIAA",   # A - neutral
+        "SLMAFTIAS",   # S - neutral
+        "SLMAFTIAK",   # K - bad
+        "SLMAFTIAP",   # P - worst
+        "KKKKKKIAL",   # L with excessive charge
+        "KKKKKKIAP",   # P with excessive charge
+    ]
+    
+    for pep in test_peptides:
+        _, score = get_score(SimpleNamespace(peptide_mut=pep))
+        assert -1.0 <= score <= 0.6, f"Score {score:.3f} for {pep} outside bounds [-1.0, 0.6]"
+
+
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Real Data Integration Test 
+# ══════════════════════════════════════════════════════════════════════
+
+
+def test_try_me():
+    """Display scores for candidates from patient_zero.csv file."""    
+    try:
+        candidates = load_candidates("data/patient_zero.csv")
+        # Just test first 10 to keep output short
+        for candidate in candidates[:10]:
+            name, value = get_score(candidate)
+            assert name == SCORE_NAME
+            assert isinstance(value, float)
+        print("test_try_me: verified first 10 candidates")
+    except FileNotFoundError:
+        pytest.skip("File data/patient_zero.csv not found")
