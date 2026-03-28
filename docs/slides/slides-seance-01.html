@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open-NeoVax — Séance 1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-bright: #f8fafc;
+    --danger: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Slide container ── */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* ── Typography ── */
+  h1 { font-size: 3.2rem; font-weight: 900; line-height: 1.15; margin-bottom: 1rem; }
+  h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--accent); }
+  h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  p, li { font-size: 1.35rem; line-height: 1.7; }
+  ul { list-style: none; padding-left: 0; }
+  ul li { padding: 0.35rem 0; padding-left: 1.8rem; position: relative; }
+  ul li::before {
+    content: '→';
+    position: absolute; left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  code {
+    font-family: 'Fira Code', monospace;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+  pre {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 1rem 0;
+    color: var(--text);
+  }
+  .subtitle { font-size: 1.6rem; color: var(--text-dim); font-weight: 300; margin-bottom: 2rem; }
+  .highlight { color: var(--accent); }
+  .highlight2 { color: var(--accent2); }
+  .highlight3 { color: var(--accent3); }
+  .highlight4 { color: var(--accent4); }
+  .danger { color: var(--danger); }
+  .gold { color: var(--gold); }
+  .dim { color: var(--text-dim); }
+  strong { color: var(--text-bright); font-weight: 700; }
+  .big { font-size: 1.6rem; }
+  .small { font-size: 1.1rem; }
+
+  /* ── Layout helpers ── */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; align-items: start; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .card h3 { margin-bottom: 0.8rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.2rem;
+  }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--accent3); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--accent4); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .badge-gold { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.5rem; margin: 2rem 0; flex-wrap: wrap;
+  }
+  .pipe-step {
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .pipe-arrow { font-size: 1.8rem; color: var(--accent); }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 1.15rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Slide number ── */
+  .slide-num {
+    position: fixed; bottom: 1.5rem; right: 2rem;
+    font-size: 0.9rem; color: var(--text-dim);
+    font-family: 'Fira Code', monospace;
+    z-index: 100;
+  }
+
+  /* ── Progress bar ── */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  /* ── Emoji icon ── */
+  .icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+
+  /* ── Section title slide ── */
+  .section-title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .section-title h1 { font-size: 3.8rem; }
+  .section-number {
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--accent);
+    opacity: 0.15;
+    position: absolute;
+    top: 1rem; right: 3rem;
+  }
+
+  /* ── Git workflow ── */
+  .git-flow {
+    display: flex; flex-direction: column; gap: 0.6rem;
+    font-size: 1.2rem; margin: 1rem 0;
+  }
+  .git-step {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.6rem 1.2rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+  .git-step .num {
+    font-family: 'Fira Code', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 2rem;
+  }
+
+  /* ── Images ── */
+  .slide-img {
+    max-width: 100%;
+    max-height: 55vh;
+    border-radius: 12px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+  .slide-img-small {
+    max-width: 100%;
+    max-height: 35vh;
+    border-radius: 10px;
+    object-fit: contain;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+
+<div class="deck" id="deck">
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║         SLIDE 1 — TITLE             ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <p class="subtitle" style="font-size:1.2rem; margin-bottom:0.5rem;">Bioinformatique L3 — Projet</p>
+  <h1>Open-NeoVax</h1>
+  <p class="subtitle">Conception rationnelle de vaccins anti-cancer<br>par scoring modulaire et explicable</p>
+  <p style="margin-top:2rem; font-size:1.1rem;" class="dim">Séance 1 — Onboarding & Git</p>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SLIDE 2 — AGENDA                  ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide">
+  <h2>Programme de la séance</h2>
+  <div class="cols">
+    <div>
+      <ul class="big">
+        <li><span class="highlight">Partie 1</span> — Contexte biologique</li>
+        <li><span class="highlight2">Partie 2</span> — Le projet Open-NeoVax</li>
+        <li><span class="highlight3">Partie 3</span> — Architecture & pipeline</li>
+        <li><span class="highlight4">Partie 4</span> — Départements & modules</li>
+        <li><span class="danger">Partie 5</span> — Workflow Git & CI</li>
+        <li><span class="gold">Partie 6</span> — Setup & premiers pas</li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:center;">
+      <h3>Objectif de fin de séance</h3>
+      <p>Chaque groupe a :</p>
+      <ul class="small">
+        <li>Un environnement fonctionnel</li>
+        <li>Une branche <code>groupe-XX</code></li>
+        <li>Une PR ouverte avec CI verte</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — CONTEXTE BIO            ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">1</span>
+  <h1>Contexte biologique</h1>
+  <p class="subtitle">Du cancer au vaccin personnalisé</p>
+</div>
+
+<!-- SLIDE — Système immunitaire : vue d'ensemble -->
+<div class="slide">
+  <h2>Le système immunitaire en 1 minute</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent);">Immunité innée</h3>
+      <ul class="small">
+        <li>Réponse <strong>rapide</strong>, non-spécifique</li>
+        <li>Macrophages, neutrophiles, cellules NK</li>
+        <li>Première ligne de défense</li>
+        <li>Pas de mémoire</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent3);">Immunité adaptative</h3>
+      <ul class="small">
+        <li>Réponse <strong>spécifique</strong> et <strong>ciblée</strong></li>
+        <li><strong>Lymphocytes T</strong> (CD4+, CD8+) et <strong>B</strong></li>
+        <li>Reconnaissance d'antigènes précis</li>
+        <li><strong>Mémoire</strong> → vaccins</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:2rem; text-align:center;">
+    <p>Dans ce projet, on s'intéresse aux <strong class="highlight">lymphocytes T CD8+</strong> (immunité adaptative) — les "tueurs" qui éliminent les cellules anormales.</p>
+  </div>
+</div>
+
+<!-- SLIDE — CD8+ et présentation antigénique -->
+<div class="slide">
+  <h2>Lymphocytes T CD8+ : les tueurs</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Chaque cellule nucléée expose des <strong>fragments de ses protéines</strong> à sa surface</li>
+        <li>Ces fragments (peptides) sont présentés par les molécules <strong>HLA classe I</strong></li>
+        <li>Les <strong>T CD8+</strong> patrouillent et inspectent ces peptides</li>
+        <li>Si un peptide est reconnu comme <strong>étranger</strong> → la cellule est détruite</li>
+      </ul>
+      <div class="card small" style="margin-top:1rem; border-left:3px solid var(--accent3);">
+        <strong>Analogie :</strong> chaque cellule montre sa "carte d'identité" (peptides du soi). Si la carte montre quelque chose d'anormal (peptide mutant) → le T CD8+ élimine la cellule.
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.2rem; line-height:2.2;">
+        <span class="badge badge-blue" style="font-size:1rem; padding:0.5rem 1rem;">Cellule normale</span><br>
+        <span class="dim">peptides du soi → </span><span class="highlight3">ignorée</span><br><br>
+        <span class="badge badge-red" style="font-size:1rem; padding:0.5rem 1rem;">Cellule tumorale</span><br>
+        <span class="dim">peptide mutant → </span><span class="danger">détruite !</span><br><br>
+        <span class="badge badge-orange" style="font-size:1rem; padding:0.5rem 1rem;">Cellule infectée</span><br>
+        <span class="dim">peptide viral → </span><span class="danger">détruite !</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Le chemin du peptide -->
+<div class="slide">
+  <h2>Le chemin du peptide : de la protéine au HLA</h2>
+  <div style="display:flex; align-items:center; justify-content:center; gap:0.3rem; margin:1.5rem 0; flex-wrap:wrap;">
+    <div class="pipe-step" style="border-color:var(--accent4); font-size:1rem;">
+      <span class="highlight4">1.</span> Protéine<br><span class="small dim">dans le cytoplasme</span>
+    </div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent4); font-size:1rem;">
+      <span class="highlight4">2.</span> Protéasome<br><span class="small dim">coupe en peptides</span>
+    </div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent2); font-size:1rem;">
+      <span class="highlight2">3.</span> TAP<br><span class="small dim">transport vers le RE</span>
+    </div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent2); font-size:1rem;">
+      <span class="highlight2">4.</span> ERAP<br><span class="small dim">ajustement taille</span>
+    </div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent); font-size:1rem;">
+      <span class="highlight">5.</span> HLA-I<br><span class="small dim">chargement</span>
+    </div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent3); font-size:1rem;">
+      <span class="highlight3">6.</span> Surface<br><span class="small dim">présentation</span>
+    </div>
+  </div>
+  <div class="cols" style="margin-top:1rem;">
+    <div class="card small">
+      <h3 style="color:var(--accent4);">À chaque étape, des peptides sont éliminés</h3>
+      <ul class="small">
+        <li>Le protéasome ne coupe pas n'importe où</li>
+        <li>TAP ne transporte pas tous les peptides</li>
+        <li>ERAP peut trop raccourcir le peptide</li>
+        <li>Le HLA n'accepte que certaines séquences</li>
+      </ul>
+    </div>
+    <div class="card small">
+      <h3 style="color:var(--accent3);">Lien avec vos modules</h3>
+      <ul class="small">
+        <li><strong>Dept B</strong> modélise les étapes 2, 3, 4</li>
+        <li><strong>Dept C</strong> modélise l'étape 5</li>
+        <li><strong>Dept A</strong> évalue le peptide globalement</li>
+        <li><strong>Dept D</strong> vérifie que c'est bien du "non-soi"</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Mutations somatiques -->
+<div class="slide">
+  <h2>Mutations somatiques</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Les cellules tumorales accumulent des <strong>mutations somatiques</strong></li>
+        <li>Certaines modifient la <strong>séquence protéique</strong></li>
+        <li>Ces protéines mutées sont dégradées en <strong>peptides</strong> (8-11 acides aminés)</li>
+        <li>Certains peptides sont <strong>présentés</strong> à la surface cellulaire</li>
+      </ul>
+    </div>
+    <div style="text-align:center;">
+      <img src="img/01-mutation-to-presentation.png" alt="Mutation to presentation pathway" class="slide-img" style="max-height:55vh;">
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5 — HLA classe I -->
+<div class="slide">
+  <h2>Présentation HLA classe I</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Les molécules <strong>HLA classe I</strong> présentent des peptides à la surface de toutes les cellules nucléées</li>
+        <li>Les <strong>lymphocytes T CD8+</strong> inspectent ces peptides</li>
+        <li>Si le peptide est reconnu comme <strong>non-soi</strong> → réponse cytotoxique</li>
+        <li>Chaque individu possède un <strong>set d'allèles HLA</strong> différent (ex: A*02:01, B*07:02...)</li>
+      </ul>
+    </div>
+    <div style="text-align:center;">
+      <img src="img/02-hla-groove.png" alt="HLA class I binding groove with P2 and P9 anchors" class="slide-img-small">
+      <p class="small dim" style="margin-top:0.5rem;">Sillon HLA-I avec positions d'ancrage P2 et P9</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6 — Néo-épitopes -->
+<div class="slide">
+  <h2>Néo-épitopes : cibles vaccinales</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Un <strong>néo-épitope</strong> = peptide mutant présenté par HLA et reconnu comme non-soi</li>
+        <li>Cible idéale pour un <strong>vaccin thérapeutique personnalisé</strong> (ARNm)</li>
+        <li>Le défi : parmi des milliers de mutations, <strong>lesquelles sont les bonnes cibles ?</strong></li>
+      </ul>
+      <div style="margin-top:1.5rem;">
+        <p class="dim small">Un bon candidat doit satisfaire <strong>plusieurs critères simultanés</strong> :</p>
+        <div style="display:flex; gap:0.8rem; margin-top:0.8rem; flex-wrap:wrap;">
+          <span class="badge badge-blue">Se fixe au HLA</span>
+          <span class="badge badge-purple">Est présenté</span>
+          <span class="badge badge-green">Diffère du soi</span>
+          <span class="badge badge-orange">Physico-chimie OK</span>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <img src="img/03-neoepitope-vaccine.png" alt="From tumor biopsy to mRNA vaccine" class="slide-img" style="max-height:55vh;">
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — LE PROJET               ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">2</span>
+  <h1>Le projet Open-NeoVax</h1>
+  <p class="subtitle">Objectifs, périmètre et livrables</p>
+</div>
+
+<!-- SLIDE 8 — Objectif -->
+<div class="slide">
+  <h2>Objectif du projet</h2>
+  <p class="big" style="margin-bottom:2rem;">
+    Construire un <strong>framework Python modulaire</strong> pour <span class="highlight">prioriser des néo-épitopes</span> HLA classe I à partir de mutations tumorales.
+  </p>
+  <div class="cols">
+    <div class="card">
+      <h3 style="color:var(--accent3);">Ce qu'on fait</h3>
+      <ul class="small">
+        <li>Comprendre le <strong>raisonnement biologique</strong></li>
+        <li>Implémenter des <strong>proxies explicables</strong></li>
+        <li>Travailler dans un cadre <strong>professionnel</strong> (Git, tests, CI)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--danger);">Ce qu'on ne fait PAS</h3>
+      <ul class="small">
+        <li>Concurrencer NetMHCpan ou des outils cliniques</li>
+        <li>Prédire l'immunogénicité TCR</li>
+        <li>Faire des prédictions cliniques</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9 — Livrables -->
+<div class="slide">
+  <h2>Livrables & évaluation</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--text-bright);">Vous devez rendre</h3>
+      <ul>
+        <li><strong>Un module Python</strong> (un fichier par groupe)</li>
+        <li><strong>Des tests unitaires</strong> (minimum 3)</li>
+        <li><strong>Un rapport PDF</strong> (science + analyse critique)</li>
+        <li><strong>Une présentation orale</strong> (dernière séance)</li>
+      </ul>
+    </div>
+    <div>
+      <table>
+        <tr><th>Critère</th><th>Poids</th></tr>
+        <tr><td>Code</td><td><span class="highlight" style="font-weight:700;">40%</span></td></tr>
+        <tr><td>Science / Rapport</td><td>20%</td></tr>
+        <tr><td>Recherche / Analyse</td><td>10%</td></tr>
+        <tr><td>Intégration pipeline</td><td>10%</td></tr>
+        <tr><td>Collaboration (Git)</td><td>20%</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10 — Planning -->
+<div class="slide">
+  <h2>Planning : 5 séances de 4h</h2>
+  <table>
+    <tr><th>#</th><th>Séance</th><th>Objectif</th></tr>
+    <tr><td><span class="highlight" style="font-weight:700;">1</span></td><td>Onboarding & Git</td><td>Setup, comprendre le projet, première PR</td></tr>
+    <tr><td>2</td><td>Score naïf</td><td>Première version de <code>get_score</code></td></tr>
+    <tr><td>3</td><td>Données externes</td><td>Charger PSSM, corpus, tables de lookup</td></tr>
+    <tr><td>4</td><td>Robustesse & intégration</td><td>Cas limites, tests, assemblage pipeline</td></tr>
+    <tr><td>5</td><td>Présentations</td><td>Oral + analyse critique</td></tr>
+  </table>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — ARCHITECTURE            ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">3</span>
+  <h1>Architecture & pipeline</h1>
+  <p class="subtitle">Comment le code s'organise</p>
+</div>
+
+<!-- SLIDE 12 — Pipeline -->
+<div class="slide">
+  <h2>Le pipeline</h2>
+  <div style="text-align:center; margin:1.5rem 0;">
+    <img src="img/04-pipeline-overview.png" alt="Pipeline overview" class="slide-img" style="max-height:40vh;">
+  </div>
+  <div class="pipeline" style="margin:1rem 0;">
+    <div class="pipe-step">CSV<br><span class="small dim">18 candidats</span></div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step">Chargement<br><span class="small dim">data_loader</span></div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent2);">Modules<br><span class="small dim" style="color:var(--accent2);">VOS scores</span></div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step">Normalisation<br><span class="small dim">min-max [0,1]</span></div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step">Agrégation<br><span class="small dim">somme pondérée</span></div>
+    <span class="pipe-arrow">→</span>
+    <div class="pipe-step" style="border-color:var(--accent3);">Classement<br><span class="small dim" style="color:var(--accent3);">résultat</span></div>
+  </div>
+  <p class="dim small" style="text-align:center; margin-top:0.5rem;">
+    Le moteur est <strong>fourni</strong>. Vous n'implémentez que le bloc <span class="highlight2">Modules</span>.
+  </p>
+</div>
+
+<!-- SLIDE 13 — Structure fichiers -->
+<div class="slide">
+  <h2>Structure du projet</h2>
+  <div class="cols">
+    <div>
+<pre style="font-size:1rem;">
+open-neovax/
+├── app.py              <span class="dim"># Interface Streamlit</span>
+├── logic/
+│   ├── types.py        <span class="dim"># Dataclass Candidate</span>
+│   ├── data_loader.py  <span class="dim"># Chargement CSV</span>
+│   ├── orchestrator.py <span class="dim"># Découverte modules</span>
+│   └── scoring.py      <span class="dim"># Normalisation</span>
+├── modules/
+│   ├── template_module.py
+│   └── <span class="highlight2">groupe_XX.py</span>   <span class="dim"># VOTRE fichier</span>
+├── data/               <span class="dim"># Données de test</span>
+└── tests/
+    └── <span class="highlight2">test_groupe_XX.py</span> <span class="dim"># VOS tests</span>
+</pre>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1.5rem; border-left:3px solid var(--danger);">
+        <h3 style="color:var(--danger);">Interdit de toucher</h3>
+        <ul class="small">
+          <li><code>logic/</code> — le moteur</li>
+          <li><code>app.py</code> — l'interface</li>
+          <li>Les fichiers des autres groupes</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--accent3);">
+        <h3 style="color:var(--accent3);">Vos fichiers</h3>
+        <ul class="small">
+          <li><code>modules/groupe_XX.py</code></li>
+          <li><code>tests/test_groupe_XX.py</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 14 — API -->
+<div class="slide">
+  <h2>L'API : une seule fonction</h2>
+  <p style="margin-bottom:1.5rem;">Chaque module expose <strong>une seule fonction publique</strong> :</p>
+<pre style="font-size:1.4rem;">
+def get_score(candidate: Candidate) -> tuple[str, float]:
+    """
+    Parameters: candidate — un objet Candidate (peptide_wt, peptide_mut, ...)
+    Returns:    ("nom_du_score", valeur_numérique)
+    """
+    # ... votre logique ici ...
+    return ("hydrophobicity", 0.72)
+</pre>
+  <div class="cols" style="margin-top:1.5rem;">
+    <div class="card">
+      <h3>L'objet Candidate</h3>
+      <ul class="small">
+        <li><code>candidate_id</code> — identifiant</li>
+        <li><code>peptide_wt</code> — séquence wild-type</li>
+        <li><code>peptide_mut</code> — séquence mutante</li>
+        <li><code>mut_pos_1based</code> — position de la mutation</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Règles</h3>
+      <ul class="small">
+        <li>Retourner un <strong>tuple de 2 éléments</strong></li>
+        <li>Le nom doit être <strong>unique et descriptif</strong></li>
+        <li>La valeur doit être un <strong>float fini</strong></li>
+        <li>Pas de NaN, pas d'infini</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 15 — Données de test -->
+<div class="slide">
+  <h2>Données de test : patient_zero.csv</h2>
+  <p style="margin-bottom:1rem;">18 candidats peptidiques conçus pour tester chaque module :</p>
+  <table style="font-size:1rem;">
+    <tr><th>Type</th><th>Candidats</th><th>Rôle</th></tr>
+    <tr><td><span class="badge badge-gold">GOLD</span></td><td>CAND_01, CAND_02</td><td>Excellents candidats — doivent être en haut du classement</td></tr>
+    <tr><td><span class="badge badge-green">BON</span></td><td>CAND_03-05, CAND_10</td><td>Bonnes propriétés, quelques faiblesses</td></tr>
+    <tr><td><span class="badge badge-blue">MEDIOCRE</span></td><td>CAND_07-09, CAND_17</td><td>Ancres faibles, profil moyen</td></tr>
+    <tr><td><span class="badge badge-orange">PIEGE</span></td><td>CAND_06, CAND_18</td><td>Semblent OK mais ont un défaut caché</td></tr>
+    <tr><td><span class="badge badge-red">MAUVAIS</span></td><td>CAND_11-12, CAND_14-16</td><td>Invalides, extrêmes, ou identiques au soi</td></tr>
+  </table>
+  <p class="dim small" style="margin-top:1rem;">Un bon pipeline classe les GOLD en haut, les MAUVAIS en bas, et détecte les PIEGES.</p>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — DÉPARTEMENTS            ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">4</span>
+  <h1>Départements & modules</h1>
+  <p class="subtitle">4 axes de scoring, 15 modules</p>
+</div>
+
+<!-- SLIDE 17 — Vue d'ensemble départements -->
+<div class="slide">
+  <h2>4 départements complémentaires</h2>
+  <div class="cols" style="grid-template-columns: 1fr 1fr; gap:1.5rem;">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <h3 style="color:var(--accent);">A — Propriétés physico-chimiques</h3>
+      <p class="small">Le peptide a-t-il des propriétés raisonnables ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Hydrophobicité, charge, complexité, delta WT/MUT</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">B — Présentation cellulaire</h3>
+      <p class="small">Le peptide peut-il arriver jusqu'au HLA ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Protéasome, TAP, ERAP, sanity checks</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">C — Liaison HLA (coeur du projet)</h3>
+      <p class="small">Le peptide se fixe-t-il bien dans le sillon HLA ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Ancres P2/P9, ancres secondaires, delta binding</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">D — Sécurité & soi</h3>
+      <p class="small">Le peptide est-il vraiment "non-soi" ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Self-similarity, mutation dans la fenêtre</p>
+    </div>
+  </div>
+  <p class="dim small" style="margin-top:1rem; text-align:center;">
+    <strong>Aucun module seul ne suffit</strong> — c'est la combinaison qui fait un bon pipeline.
+  </p>
+</div>
+
+<!-- SLIDE 18 — Dept A -->
+<div class="slide">
+  <h2><span class="highlight">Département A</span> — Propriétés physico-chimiques</h2>
+  <p style="margin-bottom:1.5rem;">Le peptide a-t-il un <strong>profil physico-chimique compatible</strong> avec une présentation immune ?</p>
+  <table>
+    <tr><th>Module</th><th>Description</th><th>Idée</th></tr>
+    <tr><td><strong>A1</strong></td><td>Hydrophobicité (Kyte-Doolittle)</td><td>Pénaliser les extrêmes : trop hydrophobe = pas soluble, trop hydrophile = pas de liaison HLA</td></tr>
+    <tr><td><strong>A2</strong></td><td>Charge nette / pI</td><td>Les peptides très chargés sont mal présentés</td></tr>
+    <tr><td><strong>A3</strong></td><td>Complexité / entropie</td><td>Un peptide répétitif (AAAAA) est suspect</td></tr>
+    <tr><td><strong>A4</strong></td><td>Delta WT vs MUT</td><td>Si la mutation ne change rien physico-chimiquement → mauvais signe</td></tr>
+  </table>
+  <div class="card small" style="margin-top:1rem; border-left:3px solid var(--accent);">
+    <strong>Piège typique :</strong> CAND_11 (ILVMILMVL) — score d'hydrophobicité excellent mais c'est un MAUVAIS candidat (impossible à présenter).
+  </div>
+</div>
+
+<!-- SLIDE 19 — Dept B -->
+<div class="slide">
+  <h2><span class="highlight2">Département B</span> — Présentation cellulaire</h2>
+  <p style="margin-bottom:1.5rem;">Le peptide peut-il <strong>survivre au trajet intracellulaire</strong> jusqu'au HLA ?</p>
+  <table>
+    <tr><th>Module</th><th>Description</th><th>Idée</th></tr>
+    <tr><td><strong>B1</strong></td><td>Protéasome (C-terminal)</td><td>Le protéasome coupe préférentiellement après certains AA</td></tr>
+    <tr><td><strong>B2</strong></td><td>TAP (transport)</td><td>Le transporteur TAP favorise certains peptides</td></tr>
+    <tr><td><strong>B3</strong></td><td>ERAP (N-terminal)</td><td>ERAP peut raccourcir le peptide — certains N-ter résistent mieux</td></tr>
+    <tr><td><strong>B4</strong></td><td>Sanity checks</td><td>Vérifications de base : longueur, caractères valides, cohérence</td></tr>
+  </table>
+  <div class="card small" style="margin-top:1rem; border-left:3px solid var(--accent2);">
+    <strong>Piège typique :</strong> CAND_16 (ALXDF*NQV) — contient des caractères invalides (X, *). Seul B4 le détecte.
+  </div>
+</div>
+
+<!-- SLIDE 20 — Dept C -->
+<div class="slide">
+  <h2><span class="highlight3">Département C</span> — Liaison HLA</h2>
+  <p style="margin-bottom:1.5rem;">Le peptide se fixe-t-il bien dans le <strong>sillon de liaison HLA</strong> ? C'est le coeur du projet.</p>
+  <table>
+    <tr><th>Module</th><th>Description</th><th>Idée</th></tr>
+    <tr><td><strong>C1</strong></td><td>Ancre P2 (PSSM)</td><td>Position 2 : L ou M sont idéaux pour HLA-A*02:01</td></tr>
+    <tr><td><strong>C2</strong></td><td>Ancre P9 / P&Omega;</td><td>Dernière position : V ou L sont idéaux</td></tr>
+    <tr><td><strong>C3</strong></td><td>Ancres secondaires</td><td>Les autres positions contribuent aussi (mais moins)</td></tr>
+    <tr><td><strong>C4</strong></td><td>Delta binding WT/MUT</td><td>La mutation améliore-t-elle la liaison HLA ?</td></tr>
+  </table>
+  <div class="cols" style="margin-top:1rem; grid-template-columns:1fr auto;">
+    <div class="card small" style="border-left:3px solid var(--accent3);">
+      <strong>Outil clé :</strong> la matrice PSSM (<code>hla_pssm_A0201.csv</code>) — scores log-odds par acide aminé et par position.
+    </div>
+    <img src="img/05-anchor-positions.png" alt="Anchor positions in HLA groove" class="slide-img-small" style="max-height:18vh; border-radius:8px;">
+  </div>
+</div>
+
+<!-- SLIDE 21 — Dept D -->
+<div class="slide">
+  <h2><span class="highlight4">Département D</span> — Sécurité & soi</h2>
+  <p style="margin-bottom:1.5rem;">Le peptide est-il <strong>vraiment différent des peptides humains normaux</strong> ?</p>
+  <table>
+    <tr><th>Module</th><th>Description</th><th>Idée</th></tr>
+    <tr><td><strong>D1</strong></td><td>Self-similarity exacte</td><td>Le peptide mutant existe-t-il dans le protéome humain ?</td></tr>
+    <tr><td><strong>D2</strong></td><td>Self-similarity approx.</td><td>Distance de Hamming avec le corpus humain</td></tr>
+    <tr><td><strong>D3</strong></td><td>Mutation dans la fenêtre</td><td>La mutation est-elle vraiment dans le peptide analysé ?</td></tr>
+  </table>
+  <div class="card small" style="margin-top:1rem; border-left:3px solid var(--accent4);">
+    <strong>Pièges typiques :</strong><br>
+    CAND_14 — peptide identique à un peptide humain connu (self-match exact, D1).<br>
+    CAND_06 — WT == MUT, la mutation n'existe pas (D3). CAND_18 — mut_pos hors fenêtre (D3).
+  </div>
+</div>
+
+<!-- SLIDE 22 — Pourquoi plusieurs modules -->
+<div class="slide">
+  <h2>Pourquoi on a besoin de TOUS les modules</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1.5rem;">Chaque module seul a des <strong>angles morts</strong> :</p>
+      <table style="font-size:1.05rem;">
+        <tr><th>Candidat</th><th>Score HLA</th><th>Problème réel</th></tr>
+        <tr><td>CAND_11</td><td class="highlight3">Bon</td><td class="danger">Hydrophobicité extrême</td></tr>
+        <tr><td>CAND_14</td><td class="highlight3">Bon</td><td class="danger">Identique au soi</td></tr>
+        <tr><td>CAND_06</td><td class="highlight3">Correct</td><td class="danger">WT == MUT (piège !)</td></tr>
+        <tr><td>CAND_01</td><td class="highlight3">Excellent</td><td class="highlight3">OK partout !</td></tr>
+      </table>
+    </div>
+    <div class="card" style="align-self:center; text-align:center;">
+      <p style="font-size:1.8rem; font-weight:700; margin-bottom:1rem;">
+        Un seul score<br>ne suffit <span class="danger">jamais</span>.
+      </p>
+      <p class="dim">C'est toute la raison d'être du pipeline modulaire.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — GIT                     ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">5</span>
+  <h1>Workflow Git & CI</h1>
+  <p class="subtitle">Travailler comme des pros</p>
+</div>
+
+<!-- SLIDE 24 — Workflow -->
+<div class="slide">
+  <h2>Le workflow Git</h2>
+  <div class="git-flow">
+    <div class="git-step"><span class="num">1</span> <code>git clone</code> — Récupérer le projet</div>
+    <div class="git-step"><span class="num">2</span> <code>git checkout -b groupe-XX</code> — Créer votre branche</div>
+    <div class="git-step"><span class="num">3</span> Travailler sur votre module et vos tests</div>
+    <div class="git-step"><span class="num">4</span> <code>git add</code> + <code>git commit -m "feat: ..."</code> — Sauvegarder</div>
+    <div class="git-step"><span class="num">5</span> <code>git push -u origin groupe-XX</code> — Envoyer sur GitHub</div>
+    <div class="git-step"><span class="num">6</span> Ouvrir une <strong>Pull Request</strong> sur GitHub</div>
+    <div class="git-step"><span class="num">7</span> La <strong>CI vérifie</strong> automatiquement (ruff + black + pytest)</div>
+    <div class="git-step"><span class="num">8</span> L'enseignant <strong>review</strong> et merge</div>
+  </div>
+</div>
+
+<!-- SLIDE 25 — CI -->
+<div class="slide">
+  <h2>L'intégration continue (CI)</h2>
+  <p style="margin-bottom:1.5rem;">À chaque push sur votre PR, GitHub lance <strong>automatiquement</strong> 3 vérifications :</p>
+  <div class="cols-3">
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent);">
+      <span class="icon">🔍</span>
+      <h3 style="color:var(--accent);">ruff</h3>
+      <p class="small">Qualité du code<br>Erreurs PEP8<br>Imports inutiles</p>
+    </div>
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent2);">
+      <span class="icon">🎨</span>
+      <h3 style="color:var(--accent2);">black</h3>
+      <p class="small">Formatage uniforme<br>Indentation, espaces<br>Style cohérent</p>
+    </div>
+    <div class="card" style="text-align:center; border-top:3px solid var(--accent3);">
+      <span class="icon">🧪</span>
+      <h3 style="color:var(--accent3);">pytest</h3>
+      <p class="small">Tests unitaires<br>Votre code fonctionne<br>Rien n'est cassé</p>
+    </div>
+  </div>
+  <p style="margin-top:1.5rem; text-align:center; font-size:1.3rem;">
+    <span class="highlight3">Les 3 doivent passer</span> pour que votre PR puisse être mergée.
+  </p>
+</div>
+
+<!-- SLIDE 26 — Règles -->
+<div class="slide">
+  <h2 style="color:var(--danger);">Les 3 règles d'or</h2>
+  <div class="cols-3">
+    <div class="card" style="text-align:center; border:2px solid var(--danger);">
+      <span class="icon">🚫</span>
+      <h3 style="color:var(--danger); font-size:1.3rem;">JAMAIS push<br>sur main</h3>
+      <p class="small dim" style="margin-top:0.5rem;">Toujours passer par une branche + Pull Request</p>
+    </div>
+    <div class="card" style="text-align:center; border:2px solid var(--danger);">
+      <span class="icon">🚫</span>
+      <h3 style="color:var(--danger); font-size:1.3rem;">JAMAIS modifier<br>un autre groupe</h3>
+      <p class="small dim" style="margin-top:0.5rem;">Vous ne touchez qu'à VOS fichiers</p>
+    </div>
+    <div class="card" style="text-align:center; border:2px solid var(--danger);">
+      <span class="icon">🚫</span>
+      <h3 style="color:var(--danger); font-size:1.3rem;">JAMAIS modifier<br>le core</h3>
+      <p class="small dim" style="margin-top:0.5rem;"><code>logic/</code> et <code>app.py</code> sont fournis et intouchables</p>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║   SECTION — SETUP                   ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<div class="slide section-title">
+  <span class="section-number">6</span>
+  <h1>Setup & premiers pas</h1>
+  <p class="subtitle">C'est à vous de jouer</p>
+</div>
+
+<!-- SLIDE 28 — Setup -->
+<div class="slide">
+  <h2>Installation</h2>
+<pre style="font-size:1.2rem;">
+<span class="dim"># 1. Cloner le dépôt</span>
+git clone https://github.com/open-neovax-course/open-neovax.git
+cd open-neovax
+
+<span class="dim"># 2. Créer l'environnement virtuel</span>
+python3 -m venv .venv
+source .venv/bin/activate    <span class="dim"># Linux / macOS</span>
+<span class="dim"># .venv\Scripts\activate     # Windows</span>
+
+<span class="dim"># 3. Installer les dépendances</span>
+pip install -r requirements.txt
+
+<span class="dim"># 4. Vérifier que tout marche</span>
+pytest tests/ -v             <span class="dim"># → 22 passed</span>
+ruff check .                 <span class="dim"># → All checks passed</span>
+black --check .              <span class="dim"># → All done</span>
+
+<span class="dim"># 5. Lancer l'interface</span>
+streamlit run app.py
+</pre>
+</div>
+
+<!-- SLIDE 29 — Checklist -->
+<div class="slide">
+  <h2>Checklist de fin de séance</h2>
+  <p style="margin-bottom:1.5rem;">Avant de partir, chaque groupe doit avoir coché <strong>toutes</strong> ces cases :</p>
+  <div class="cols">
+    <div>
+      <ul class="big">
+        <li>Clone + venv + install OK</li>
+        <li><code>pytest</code> → 22 passed</li>
+        <li><code>streamlit run app.py</code> fonctionne</li>
+        <li>Branche <code>groupe-XX</code> créée</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="big">
+        <li>Template copié en <code>groupe_XX.py</code></li>
+        <li>Premier commit + push</li>
+        <li>PR ouverte sur GitHub</li>
+        <li>CI verte</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:2rem; text-align:center;">
+    <p class="big">
+      <strong>Prochaine séance :</strong> vous implémenterez votre première version de <code>get_score</code>
+    </p>
+  </div>
+</div>
+
+<!-- SLIDE 30 — Questions -->
+<div class="slide section-title">
+  <h1>Questions ?</h1>
+  <p class="subtitle" style="margin-top:1rem;">
+    Documentation : <code>docs/</code> dans le repo<br>
+    Guide Git : <code>CONTRIBUTING.md</code>
+  </p>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const slideNum = document.getElementById('slideNum');
+  let current = 0;
+
+  function showSlide(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    slideNum.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); showSlide(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); showSlide(current - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? showSlide(current + 1) : showSlide(current - 1); }
+  });
+
+  showSlide(0);
+</script>
+</body>
+</html>
