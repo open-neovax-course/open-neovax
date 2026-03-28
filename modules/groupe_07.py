@@ -127,72 +127,23 @@ def _score_charge(peptide: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Return the TAP transport proxy score for a candidate.
+    """Compute the TAP transport proxy score for a neo-epitope candidate.
 
-    Parameters
-    ----------
-    candidate:
-        Candidate object containing at least `peptide_mut`.
-
-    Returns
-    -------
-    tuple[str, float]
-        The score name and a finite float score.
-
-    Error policy
-    ------------
-    - Empty or invalid peptide: explicit penalty.
-    - Length outside 8-11 aa: explicit penalty.
-    - Unexpected attribute issues: explicit penalty.
+    Only candidate.peptide_mut is used. Returns INVALID_PENALTY for
+    malformed inputs without raising an exception.
     """
-    try:
-        peptide = str(candidate.peptide_mut).strip().upper()
-    except (AttributeError, TypeError, ValueError):
-        return (SCORE_NAME, EMPTY_OR_INVALID_PENALTY)
 
+    peptide = candidate.peptide_mut
+
+    # Invalid input: return explicit penalty without raising an exception
     if not _is_valid_peptide(peptide):
-        return (SCORE_NAME, EMPTY_OR_INVALID_PENALTY)
+        return (SCORE_NAME, INVALID_PENALTY)
 
-    if len(peptide) not in ALLOWED_LENGTHS:
-        return (SCORE_NAME, OUT_OF_RANGE_LENGTH_PENALTY)
+    # Compute both components
+    cterm_score = _score_cterminus(peptide)
+    charge_score = _score_charge(peptide)
 
-    return (SCORE_NAME, float(_compute_tap_score(peptide)))
+    # Weighted combination
+    final_score = WEIGHT_CTERMINUS * cterm_score + WEIGHT_CHARGE * charge_score
 
-
-
-
-
-
-
-
-# def get_score(candidate: "Candidate") -> tuple[str, float]:
-#     """Compute the score for a given candidate.
-
-#     This is THE ONLY FUNCTION that the pipeline calls.
-#     It must ALWAYS return a tuple (str, float):
-#       - str  : the unique name of your score
-#       - float : the computed value (not NaN, not inf)
-
-#     Parameters
-#     ----------
-#     candidate : Candidate
-#         Object containing neo-epitope information:
-#         - candidate.peptide_mut  (str)  : mutated sequence
-#         - candidate.peptide_wt   (str)  : wild-type sequence
-#         - candidate.mut_pos_1based (int): mutation position
-#         - candidate.gene         (str)  : source gene
-#         - candidate.hla_allele   (str)  : target HLA allele
-
-#     Returns
-#     -------
-#     tuple[str, float]
-#         (score_name, score_value)
-#     """
-#     # 1. Get the sequence to analyze
-#     peptide = candidate.peptide_mut
-
-#     # 2. Compute the score using your logic
-#     score_value = _compute_something(peptide)
-
-#     # 3. Return the result in the expected format
-#     return (SCORE_NAME, score_value)
+    return (SCORE_NAME, float(final_score))
