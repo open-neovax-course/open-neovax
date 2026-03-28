@@ -68,5 +68,5 @@
 |------------|--------|----------------|
 | A — Peptide properties | 01, 05, 08, 09, 11, 14 | A1, A2, A3, A4, A7, A8, A9 |
 | B — Processing | 06, 07, 10 | B1, B2, B3, B4, B5 |
-| C — HLA binding | 02, 03, 04, 13 | C1, C2, C3, C4, C5, C6 |
+| C — HLA binding | 02, 03, 04 | C1, C2, C3, C4, C6 |
 | D — Self / safety | 02, 11, 12 | D1, D2, D3, D5 |
