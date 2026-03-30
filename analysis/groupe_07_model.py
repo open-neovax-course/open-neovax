@@ -264,6 +264,50 @@ def compare_models(X_scaled, y: pd.Series) -> None:
  
 
 
+ 
+# =============================================================================
+# FINAL RANKING
+# =============================================================================
+ 
+def print_ranking(
+    model,
+    X_scaled,
+    candidate_ids: list[str],
+    labels_raw: list[str],
+) -> None:
+    """Rank candidates by predicted probability of being GOOD/GOLD.
+ 
+    Prints a numbered list. GOLD candidates are flagged with '<-- TARGET'.
+    Checks whether CAND_01 reaches rank #1.
+    """
+    probas = model.predict_proba(X_scaled)[:, 1]
+ 
+    ranking = sorted(
+        zip(candidate_ids, probas, labels_raw),
+        key=lambda x: -x[1],
+    )
+ 
+    print("=" * 60)
+    print("FINAL RANKING (patient_zero)")
+    print("=" * 60)
+ 
+    cand01_rank = None
+    for i, (cid, prob, label) in enumerate(ranking, 1):
+        marker = "  <-- TARGET" if label == "GOLD" else ""
+        if cid == "CAND_01":
+            cand01_rank = i
+        print(f"  {i:3d}.  {cid:10s}  {prob:.3f}  {label}{marker}")
+ 
+    print()
+    if cand01_rank == 1:
+        print("  SUCCESS: CAND_01 is ranked #1!")
+    elif cand01_rank:
+        print(f"  WARNING: CAND_01 is ranked #{cand01_rank} (target: #1)")
+    else:
+        print("  INFO: CAND_01 not found in patient_zero.")
+    print()
+ 
+ 
 
 
 
