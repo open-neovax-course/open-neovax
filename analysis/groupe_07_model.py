@@ -151,4 +151,78 @@ def load_validation(
  
     return X, candidate_ids, labels_raw
 
-    
+
+# =============================================================================
+# FEATURE IMPORTANCE — 3 METHODS
+# =============================================================================
+
+def importance_rf(
+    model: RandomForestClassifier,
+    feature_names: list[str],
+    ) -> pd.Series:
+    """Built-in Gini importance from a trained Random Forest."""
+    return (
+        pd.Series(model.feature_importances_, index=feature_names)
+        .sort_values(ascending=False)
+    )
+
+
+def importance_lr(
+    model: LogisticRegression,
+    feature_names: list[str],
+    ) -> pd.Series:
+    """Absolute coefficients from a trained Logistic Regression.
+ 
+    A large positive coefficient -> predicts GOLD/GOOD.
+    A large negative coefficient -> predicts BAD/TRAP.
+    """
+    coefs = pd.Series(model.coef_[0], index=feature_names)
+    return coefs.reindex(coefs.abs().sort_values(ascending=False).index)
+
+
+def importance_permutation(
+    model,
+    X_scaled,
+    y: pd.Series,
+    feature_names: list[str],
+    ) -> pd.Series:
+    """Permutation importance — model-agnostic.
+ 
+    Measures accuracy drop when each feature is randomly shuffled.
+    Works with any sklearn-compatible model.
+    """
+    result = permutation_importance(
+        model, X_scaled, y, n_repeats=30, random_state=RANDOM_STATE
+    )
+    return (
+        pd.Series(result.importances_mean, index=feature_names)
+        .sort_values(ascending=False)
+    )
+
+
+def print_importances(importances: pd.Series, title: str) -> None:
+    """Print a feature importance table with inline ASCII bar chart."""
+    print("=" * 60)
+    print(title)
+    print("=" * 60)
+    for feat, imp in importances.items():
+        bar = "#" * int(abs(imp) * 50)
+        print(f"  {feat:35s}  {imp:+.3f}  {bar}")
+    print()
+
+
+def plot_importances(
+    importances: pd.Series,
+    title: str,
+    path: Path,
+    ) -> None:
+    """Save a horizontal bar chart of feature importances to disk."""
+    importances.plot(kind="barh", figsize=(10, 6))
+    plt.xlabel("Importance")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(path, dpi=150)
+    plt.close()
+    print(f"  Plot saved -> {path}\n")
+
+
