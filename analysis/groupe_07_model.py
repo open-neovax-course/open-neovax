@@ -226,3 +226,25 @@ def plot_importances(
     print(f"  Plot saved -> {path}\n")
 
 
+# =============================================================================
+# MAIN PIPELINE
+# =============================================================================
+ 
+def main() -> None:
+    print("\nOpen-NeoVax -- ML Pipeline -- groupe 07")
+    print("=" * 60)
+ 
+    # ------------------------------------------------------------------
+    # 1. Load training data (patient_one)
+    # ------------------------------------------------------------------
+    print("\n[1/5] Loading training data (patient_one)...")
+    X_train_raw, y_train, feature_names = load_training(PATIENT_ONE)
+    print(f"  {len(y_train)} candidates  x  {len(feature_names)} features")
+    print(
+        f"  Positives (GOLD/GOOD): {y_train.sum()} | "
+        f"Negatives (BAD/TRAP): {(y_train == 0).sum()}\n"
+    )
+ 
+ 
+if _name_ == "_main_":
+    main()
