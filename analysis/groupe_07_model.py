@@ -16,6 +16,13 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+    roc_curve,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -333,6 +340,87 @@ def main() -> None:
         f"Negatives (BAD/TRAP): {(y_train == 0).sum()}\n"
     )
 
+    # ------------------------------------------------------------------
+    # 2. Standardize — fit ONLY on training data
+    # ------------------------------------------------------------------
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_raw)
+ 
+    # ------------------------------------------------------------------
+    # 3. Compare models with cross-validation
+    # ------------------------------------------------------------------
+    print("[2/5] Comparing models (cross-validation)...")
+    compare_models(X_train_scaled, y_train)
+ 
+    # ------------------------------------------------------------------
+    # 4. Train final models on full training set
+    # ------------------------------------------------------------------
+    print("[3/5] Training final models on full patient_one dataset...")
+ 
+    rf = RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+    )
+    rf.fit(X_train_scaled, y_train)
+ 
+    lr = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
+    lr.fit(X_train_scaled, y_train)
+ 
+    gb = GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+    )
+    gb.fit(X_train_scaled, y_train)
+ 
+    # ------------------------------------------------------------------
+    # 5. Feature importance — 3 methods
+    # ------------------------------------------------------------------
+    print("[4/5] Feature importance analysis...\n")
+ 
+    # Method 1: Random Forest built-in (Gini)
+    imp_rf = importance_rf(rf, feature_names)
+    print_importances(imp_rf, "FEATURE IMPORTANCE -- Random Forest (Gini, built-in)")
+    plot_importances(
+        imp_rf,
+        "Feature importance -- Random Forest (groupe 07)",
+        PROJECT_ROOT / "analysis" / "groupe_07_importance_rf.png",
+    )
+ 
+    # Method 2: Logistic Regression coefficients
+    imp_lr = importance_lr(lr, feature_names)
+    print_importances(imp_lr, "FEATURE IMPORTANCE -- Logistic Regression (coefficients)")
+ 
+    # Method 3: Permutation importance (model-agnostic)
+    imp_perm = importance_permutation(rf, X_train_scaled, y_train, feature_names)
+    print_importances(
+        imp_perm, "FEATURE IMPORTANCE -- Permutation importance (Random Forest)"
+    )
+ 
+    # Hold-out classification report (sanity check)
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_train_scaled, y_train, test_size=0.2, random_state=RANDOM_STATE
+    )
+    rf_ho = RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+    )
+    rf_ho.fit(X_tr, y_tr)
+    print("=" * 60)
+    print("CLASSIFICATION REPORT -- hold-out split (patient_one, 80/20)")
+    print("=" * 60)
+    print(classification_report(
+        y_te, rf_ho.predict(X_te), target_names=["BAD/TRAP", "GOOD/GOLD"]
+    ))
+ 
+    # ------------------------------------------------------------------
+    # 6. Validate on patient_zero (never seen during training)
+    # ------------------------------------------------------------------
+    print("[5/5] Validation on patient_zero...")
+    X_zero_raw, ids_zero, labels_zero = load_validation(PATIENT_ZERO, feature_names)
+ 
+    # Use scaler.transform (NOT fit_transform) — scaler was fit on patient_one only
+    X_zero_scaled = scaler.transform(X_zero_raw)
+ 
+    print_ranking(rf, X_zero_scaled, ids_zero, labels_zero)
+    print("Done.")
+    print("Plot saved -> analysis/groupe_07_importance_rf.png")
 
 if __name__ == "__main__":
     main()
