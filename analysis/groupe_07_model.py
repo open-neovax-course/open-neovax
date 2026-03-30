@@ -4,7 +4,6 @@ Objective: learn the optimal combination of module scores to distinguish
 good candidates (GOLD, GOOD) from bad ones (BAD, TRAP), and identify
 which scoring modules are the most predictive.
 
-Group 07
 """
 
 from __future__ import annotations
@@ -226,6 +225,48 @@ def plot_importances(
     plt.savefig(path, dpi=150)
     plt.close()
     print(f"  Plot saved -> {path}\n")
+
+
+
+
+# =============================================================================
+# MODEL COMPARISON
+# =============================================================================
+ 
+def compare_models(X_scaled, y: pd.Series) -> None:
+    """Compare 3 models using 5-fold cross-validation (accuracy).
+ 
+    Models
+    ------
+    - Logistic Regression : linear baseline
+    - Random Forest       : ensemble, captures interactions
+    - Gradient Boosting   : strongest ensemble
+    """
+    models = {
+        "Logistic Regression": LogisticRegression(
+            max_iter=1000, random_state=RANDOM_STATE
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+        ),
+        "Gradient Boosting": GradientBoostingClassifier(
+            n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+        ),
+    }
+ 
+    print("=" * 60)
+    print("CROSS-VALIDATION ACCURACY (5-fold, patient_one)")
+    print("=" * 60)
+    for name, model in models.items():
+        scores = cross_val_score(model, X_scaled, y, cv=5, scoring="accuracy")
+        print(f"  {name:25s}  {scores.mean():.3f}  (+/- {scores.std():.3f})")
+    print()
+ 
+
+
+
+
+
 
 
 # =============================================================================
