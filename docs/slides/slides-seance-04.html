@@ -760,6 +760,138 @@ python analysis/groupe_XX_model.py
   </div>
 </div>
 
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — SOUTENANCE             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">5</span>
+  <h1>Séance 5 — Soutenance</h1>
+  <p class="subtitle">Ce que j'attends de vous la semaine prochaine</p>
+</div>
+
+<!-- SLIDE — Format soutenance -->
+<div class="slide">
+  <h2>Format de la soutenance</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <h3 style="color:var(--accent);">Présentation orale</h3>
+      <ul class="small">
+        <li><strong>8-10 min</strong> par groupe + 3-5 min de questions</li>
+        <li>Support libre : slides, démo live, tableau</li>
+        <li>Tous les membres du groupe doivent parler</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">Rapport PDF</h3>
+      <ul class="small">
+        <li>Nommage : <code>rapport_groupe_XX.pdf</code></li>
+        <li>Description du module + résultats + analyse critique</li>
+        <li>Au moins <strong>1 référence scientifique</strong></li>
+        <li>À rendre le jour de la soutenance</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Structure attendue -->
+<div class="slide">
+  <h2>Structure de la présentation</h2>
+  <table>
+    <tr><th>Partie</th><th>Durée</th><th>Contenu</th></tr>
+    <tr>
+      <td><span class="badge badge-blue">1. Module</span></td>
+      <td>2 min</td>
+      <td>Quel module, quel département, l'hypothèse biologique <strong>en une phrase</strong></td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-purple">2. Implémentation</span></td>
+      <td>3 min</td>
+      <td>Comment le score est calculé, quelles données, comment les cas limites sont gérés</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">3. Résultats</span></td>
+      <td>2 min</td>
+      <td>Montrer 2-3 candidats bien et mal scorés. Est-ce <strong>biologiquement cohérent</strong> ?</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-orange">4. Analyse critique</span></td>
+      <td>2 min</td>
+      <td>Un <strong>faux positif</strong> concret, une <strong>limitation</strong>, une <strong>amélioration</strong> possible</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-gold">5. ML (si applicable)</span></td>
+      <td>1 min</td>
+      <td>Feature importance : votre module est-il prédictif ? Quel rang ?</td>
+    </tr>
+  </table>
+</div>
+
+<!-- SLIDE — Ce que je note -->
+<div class="slide">
+  <h2>Critères d'évaluation</h2>
+  <div class="cols-3">
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">Code</h3>
+      <ul class="small">
+        <li><code>get_score</code> fonctionne</li>
+        <li>Cas limites gérés (pas de crash)</li>
+        <li>3+ tests pertinents</li>
+        <li>CI verte</li>
+        <li>Code propre (ruff + black)</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">Bio</h3>
+      <ul class="small">
+        <li>Hypothèse biologique claire</li>
+        <li>Score interprétable</li>
+        <li>Faux positif identifié</li>
+        <li>Limitation honnête</li>
+        <li>Référence scientifique</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">Oral</h3>
+      <ul class="small">
+        <li>Explication claire et pédagogique</li>
+        <li>Résultats concrets montrés</li>
+        <li>Analyse critique (pas juste "ça marche")</li>
+        <li>Réponses aux questions maîtrisées</li>
+        <li>Tous les membres participent</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Questions type soutenance -->
+<div class="slide">
+  <h2>Le type de questions que je poserai</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent);">Techniques</h3>
+      <ul class="small">
+        <li>"Que se passe-t-il si le peptide contient un X ?"</li>
+        <li>"Combien de fois le fichier PSSM est-il chargé ?"</li>
+        <li>"Votre module est-il déterministe ?"</li>
+        <li>"Pourquoi <code>.get(aa, 0.0)</code> plutôt que <code>[aa]</code> ?"</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent2);">Biologiques</h3>
+      <ul class="small">
+        <li>"Un score élevé suffit-il pour un bon candidat vaccinal ?"</li>
+        <li>"Quel autre module complète le mieux le vôtre ?"</li>
+        <li>"Ce module fonctionnerait-il avec un autre allèle HLA ?"</li>
+        <li>"Pourquoi CAND_11 est-il bien/mal classé ?"</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; text-align:center; border:2px solid var(--danger);">
+    <p><strong>La question clé :</strong> "Citez un candidat que votre module classe mal, et expliquez pourquoi."</p>
+    <p class="dim small" style="margin-top:0.5rem;">Si vous pouvez répondre à ça, vous maîtrisez votre module.</p>
+  </div>
+</div>
+
 <!-- SLIDE — Questions -->
 <div class="slide section-title">
   <h1>Questions ?</h1>
