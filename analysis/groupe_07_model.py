@@ -312,6 +312,50 @@ def print_ranking(
 
 
 # =============================================================================
+# FEATURE SELECTION (remove least important features)
+# =============================================================================
+
+
+def feature_selection(
+    X_scaled,
+    y: pd.Series,
+    feature_names: list[str],
+    importances: pd.Series,
+) -> None:
+    """Try removing the least important features and compare accuracy.
+
+    Strategy: train with top-N features for N in [all, 75%, 50%, 25%].
+    Prints cross-validation accuracy for each subset.
+    """
+    print("=" * 60)
+    print("Feature selection (remove least important)")
+    print("=" * 60)
+
+    n_total = len(feature_names)
+    thresholds = {
+        "All features": n_total,
+        "Top 75%": max(1, int(n_total * 0.75)),
+        "Top 50%": max(1, int(n_total * 0.50)),
+        "Top 25%": max(1, int(n_total * 0.25)),
+    }
+
+    top_features = importances.index.tolist()  # already sorted by importance
+
+    for label, k in thresholds.items():
+        selected = [feature_names.index(f) for f in top_features[:k]]
+        X_sub = X_scaled[:, selected]
+        model = RandomForestClassifier(
+            n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+        )
+        scores = cross_val_score(model, X_sub, y, cv=5, scoring="accuracy")
+        print(
+            f"  {label:15s} ({k:2d} features)"
+            f"  acc = {scores.mean():.3f} +/- {scores.std():.3f}"
+        )
+    print()
+
+
+# =============================================================================
 # MAIN PIPELINE
 # =============================================================================
 
@@ -416,6 +460,11 @@ def main() -> None:
     print_ranking(rf, X_zero_scaled, ids_zero, labels_zero)
     print("Done.")
     print("Plot saved -> analysis/groupe_07_importance_rf.png")
+
+    # ------------------------------------------------------------------
+    # Feature selection
+    # ------------------------------------------------------------------
+    feature_selection(X_train_scaled, y_train, feature_names, imp_rf)
 
 
 if __name__ == "__main__":
