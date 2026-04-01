@@ -41,5 +41,14 @@ HUMAN_PEPTIDES = _load_human_peptides(HUMAN_PEPTIDES_PATH)
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """Compute D5 wild-type presentation score."""
-    _ = candidate.peptide_wt
+    wt = candidate.peptide_wt
+
+    if not isinstance(wt, str) or not wt:
+        return (SCORE_NAME, 0.0)
+
+    wt = wt.strip().upper()
+
+    if wt in HUMAN_PEPTIDES:
+        return (SCORE_NAME, 1.0)
+
     return (SCORE_NAME, 0.0)
