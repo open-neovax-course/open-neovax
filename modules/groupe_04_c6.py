@@ -126,9 +126,8 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
         (score_name, score_value)
     """
     pssm = _PSSM
-    peptide_wt = _normalize_peptide(getattr(candidate, "peptide_wt", None), pssm)
     peptide_mut = _normalize_peptide(getattr(candidate, "peptide_mut", None), pssm)
-    if pssm is None or peptide_wt is None or peptide_mut is None:
+    if pssm is None or peptide_mut is None:
         return (SCORE_NAME, 0.0)
 
     def _position_ratio(aa: str, col: str) -> float:
