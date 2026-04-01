@@ -43,18 +43,25 @@ def test_score_value_finite():
     assert not math.isinf(value)
 
 
-def test_conservative_mutation():
-    """L -> V (both hydrophobic) should score 0."""
-    cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SVMAFTIAV")
+def test_identical_sequences():
+    """Test that identical sequences return 0.0."""
+    cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SLMAFTIAV")
     _, score = get_score(cand)
     assert score == 0.0
 
 
+def test_conservative_mutation():
+    """L -> V (both hydrophobic) should score between 0.0 and 0.3"""
+    cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SVMAFTIAV")
+    _, score = get_score(cand)
+    assert 0.0 < score < 0.3
+
+
 def test_radical_mutation():
-    """L -> D (hydrophobic -> negative) should score > 0."""
+    """L -> D (hydrophobic -> negative) should score > 0.5"""
     cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SDMAFTIAV")
     _, score = get_score(cand)
-    assert score > 0.0
+    assert score > 0.5
 
 
 def test_different_lengths():
@@ -62,3 +69,18 @@ def test_different_lengths():
     cand = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SLMAF")
     _, score = get_score(cand)
     assert score == -1.0
+
+
+def test_granularity():
+    """
+    L -> D (hydrophobic -> negative) should score worse than L-> S (hydrophobic
+    -> polar)
+
+    """
+    cand_negative = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SDMAFTIAV")
+    _, score_negative = get_score(cand_negative)
+
+    cand_polar = _make_candidate(peptide_wt="SLMAFTIAV", peptide_mut="SSMAFTIAV")
+    _, score_polar = get_score(cand_polar)
+
+    assert score_negative > score_polar

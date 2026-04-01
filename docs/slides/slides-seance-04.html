@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open-NeoVax — Séance 4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-bright: #f8fafc;
+    --danger: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  h1 { font-size: 3.2rem; font-weight: 900; line-height: 1.15; margin-bottom: 1rem; }
+  h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--accent); }
+  h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  p, li { font-size: 1.35rem; line-height: 1.7; }
+  ul { list-style: none; padding-left: 0; }
+  ul li { padding: 0.35rem 0; padding-left: 1.8rem; position: relative; }
+  ul li::before { content: '\2192'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  code {
+    font-family: 'Fira Code', monospace;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+  pre {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 1rem 0;
+    color: var(--text);
+  }
+  .subtitle { font-size: 1.6rem; color: var(--text-dim); font-weight: 300; margin-bottom: 2rem; }
+  .highlight { color: var(--accent); }
+  .highlight2 { color: var(--accent2); }
+  .highlight3 { color: var(--accent3); }
+  .highlight4 { color: var(--accent4); }
+  .danger { color: var(--danger); }
+  .gold { color: var(--gold); }
+  .dim { color: var(--text-dim); }
+  strong { color: var(--text-bright); font-weight: 700; }
+  .big { font-size: 1.6rem; }
+  .small { font-size: 1.1rem; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; align-items: start; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .card h3 { margin-bottom: 0.8rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.2rem;
+  }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--accent3); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--accent4); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .badge-gold { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 1.15rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .slide-num {
+    position: fixed; bottom: 1.5rem; right: 2rem;
+    font-size: 0.9rem; color: var(--text-dim);
+    font-family: 'Fira Code', monospace;
+    z-index: 100;
+  }
+
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  .icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+
+  .section-title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .section-title h1 { font-size: 3.8rem; }
+  .section-number {
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--accent);
+    opacity: 0.15;
+    position: absolute;
+    top: 1rem; right: 3rem;
+  }
+
+  .code-good { border-left: 3px solid var(--accent3); }
+  .code-bad { border-left: 3px solid var(--danger); }
+  .code-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+
+<div class="deck" id="deck">
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 1 — TITLE             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <p class="subtitle" style="font-size:1.2rem; margin-bottom:0.5rem;">Bioinformatique L3 — Projet</p>
+  <h1>Open-NeoVax</h1>
+  <p class="subtitle">Séance 4 — Robustesse, intégration &amp; ML</p>
+  <p style="margin-top:2rem; font-size:1.1rem;" class="dim">Pipeline complet + score global intelligent</p>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--          SLIDE 2 — AGENDA            -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide">
+  <h2>Programme de la séance</h2>
+  <div class="cols">
+    <div>
+      <ul class="big">
+        <li><span class="highlight">Partie 1</span> — Les candidats pièges (30 min)</li>
+        <li><span class="highlight2">Partie 2</span> — Robustesse &amp; tests (1h)</li>
+        <li><span class="highlight3">Partie 3</span> — Pipeline complet : démo live (30 min)</li>
+        <li><span class="highlight4">Partie 4</span> — Nouveau projet : score global ML (2h)</li>
+      </ul>
+    </div>
+    <div class="card" style="align-self:center;">
+      <h3>Objectifs</h3>
+      <ul class="small">
+        <li>Modules robustes (pas de crash)</li>
+        <li>3 tests minimum par module</li>
+        <li>Pipeline complet fonctionnel</li>
+        <li>Lancer le projet de score global</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — CANDIDATS PIÈGES       -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">1</span>
+  <h1>Les candidats pièges</h1>
+  <p class="subtitle">patient_zero.csv contient des cas tordus. Votre module les gère-t-il ?</p>
+</div>
+
+<!-- SLIDE — Tableau des pièges -->
+<div class="slide">
+  <h2>7 pièges dans patient_zero</h2>
+  <table style="font-size:1rem;">
+    <tr><th>Candidat</th><th>Piège</th><th>Modules concernés</th><th>Comportement attendu</th></tr>
+    <tr><td><strong>CAND_06</strong></td><td class="danger">WT == MUT</td><td>D3, A4</td><td>Pénalité (pas de mutation)</td></tr>
+    <tr><td><strong>CAND_11</strong></td><td class="danger">Tout I/L/V/M</td><td>A1, A3</td><td>Hydrophobicité extrême</td></tr>
+    <tr><td><strong>CAND_12</strong></td><td class="danger">Tout D/K/E/R</td><td>A2, C1, C2</td><td>Charge extrême, pires ancres</td></tr>
+    <tr><td><strong>CAND_14</strong></td><td class="danger">MUT dans le corpus self</td><td>D1, D2</td><td>Exact match = pénalité</td></tr>
+    <tr><td><strong>CAND_15</strong></td><td class="danger">P@P9</td><td>C2</td><td>Pire ancre (-3.0)</td></tr>
+    <tr><td><strong>CAND_16</strong></td><td class="danger">Contient X et *</td><td>B4, tous</td><td>Ne doit PAS crasher</td></tr>
+    <tr><td><strong>CAND_18</strong></td><td class="danger">mut_pos = 12</td><td>D3</td><td>Position hors fenêtre</td></tr>
+  </table>
+  <div class="card" style="margin-top:1rem; text-align:center;">
+    <p><strong>Question :</strong> que retourne votre module pour CAND_16 ? Testez maintenant.</p>
+  </div>
+</div>
+
+<!-- SLIDE — Bon vs mauvais code pour les pièges -->
+<div class="slide">
+  <h2>Gérer les cas limites</h2>
+  <div class="cols">
+    <div>
+      <span class="code-label danger">Crashe sur CAND_16 :</span>
+<pre class="code-bad" style="font-size:0.95rem;">
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    <span class="danger">return ("score", KD[pep[0]])</span>
+    <span class="dim"># KeyError si pep[0] = "X"</span>
+</pre>
+      <span class="code-label danger">Crashe sur peptide vide :</span>
+<pre class="code-bad" style="font-size:0.95rem;">
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    <span class="danger">avg = sum(...) / len(pep)</span>
+    <span class="dim"># ZeroDivisionError</span>
+</pre>
+    </div>
+    <div>
+      <span class="code-label highlight3">Robuste :</span>
+<pre class="code-good" style="font-size:0.95rem;">
+def get_score(candidate):
+    pep = candidate.peptide_mut
+    if not pep or len(pep) &lt; 8:
+        return (SCORE_NAME, 0.0)
+
+    total = sum(
+        KD<span class="highlight3">.get</span>(aa, 0.0)
+        for aa in pep.upper()
+    )
+    return (SCORE_NAME, total / len(pep))
+</pre>
+      <p class="small dim" style="margin-top:0.5rem;"><code>.get(aa, 0.0)</code> = jamais de KeyError.<br>Check longueur = jamais de ZeroDivisionError.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — ROBUSTESSE & TESTS     -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">2</span>
+  <h1>Robustesse &amp; tests</h1>
+  <p class="subtitle">3 tests minimum : nominal, edge case, invalide</p>
+</div>
+
+<!-- SLIDE — Les 3 tests obligatoires -->
+<div class="slide">
+  <h2>Les 3 tests que chaque module doit avoir</h2>
+  <div class="cols-3">
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">1. Nominal</h3>
+      <p class="small">Un candidat standard retourne un score raisonnable</p>
+<pre style="font-size:0.85rem;">
+def test_nominal():
+    name, val = get_score(
+        make_cand("SLMAFTIAV"))
+    assert isinstance(val, float)
+    assert name == SCORE_NAME
+</pre>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">2. Edge case</h3>
+      <p class="small">Un candidat problématique ne crashe pas</p>
+<pre style="font-size:0.85rem;">
+def test_invalid_aa():
+    name, val = get_score(
+        make_cand("ALXDF*NQV"))
+    assert isinstance(val, float)
+    <span class="dim"># pas de crash !</span>
+</pre>
+    </div>
+    <div class="card" style="border-top:3px solid var(--danger);">
+      <h3 style="color:var(--danger);">3. Invalide</h3>
+      <p class="small">Un input vide/absent retourne un score neutre</p>
+<pre style="font-size:0.85rem;">
+def test_empty():
+    name, val = get_score(
+        make_cand(""))
+    assert isinstance(val, float)
+    <span class="dim"># score neutre, pas crash</span>
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Checklist robustesse -->
+<div class="slide">
+  <h2>Checklist robustesse</h2>
+  <p style="margin-bottom:1rem;">Testez votre module contre chacun de ces cas :</p>
+  <div class="cols">
+    <div>
+      <table style="font-size:1.05rem;">
+        <tr><th>Cas</th><th>Attendu</th></tr>
+        <tr><td>Peptide vide <code>""</code></td><td>Score neutre, pas de crash</td></tr>
+        <tr><td>Peptide court <code>"A"</code></td><td>Score neutre</td></tr>
+        <tr><td>Contient X ou * (CAND_16)</td><td>Score neutre ou pénalité</td></tr>
+        <tr><td>WT == MUT (CAND_06)</td><td>Pénalité ou 0</td></tr>
+        <tr><td>mut_pos hors fenêtre (CAND_18)</td><td>Pénalité</td></tr>
+        <tr><td>Fichier de données absent</td><td>Score neutre (0.0)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Commandes de vérification</h3>
+<pre style="font-size:0.95rem;">
+<span class="dim"># Vos tests</span>
+pytest tests/test_groupe_XX.py -v
+
+<span class="dim"># Style</span>
+ruff check modules/groupe_XX.py
+black modules/groupe_XX.py
+
+<span class="dim"># Pipeline complet</span>
+streamlit run app.py
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Docstring attendue -->
+<div class="slide">
+  <h2>Docstring complète</h2>
+  <p style="margin-bottom:1rem;">Chaque module doit documenter son hypothèse et ses limites :</p>
+<pre style="font-size:1rem;">
+"""Module A1 — Hydrophobicity (Kyte-Doolittle).
+
+<span class="highlight">Hypothesis:</span>
+    Neo-epitopes need balanced hydrophobicity for efficient
+    processing and HLA presentation. Extreme values are penalized.
+
+<span class="highlight2">Computation:</span>
+    Position-weighted Kyte-Doolittle average.
+    Anchor positions (P2, P9) favor hydrophobic residues.
+    Exposed positions (P4-P7) penalize excess hydrophobicity.
+
+<span class="highlight3">Score interpretation:</span>
+    High  = favorable hydrophobic profile
+    Low   = extreme or unbalanced hydrophobicity
+
+<span class="danger">Limitations:</span>
+    - Single-scale approximation
+    - Does not account for peptide-HLA specific interactions
+    - Position weights are heuristic, not data-driven
+"""
+</pre>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — PIPELINE COMPLET       -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">3</span>
+  <h1>Pipeline complet</h1>
+  <p class="subtitle">Tous vos modules tournent ensemble</p>
+</div>
+
+<!-- SLIDE — Démo live -->
+<div class="slide">
+  <h2>Démo : le pipeline en action</h2>
+<pre style="font-size:1.3rem;">
+<span class="dim"># Mettre à jour</span>
+git checkout main
+git pull
+
+<span class="dim"># Lancer l'interface</span>
+streamlit run app.py
+</pre>
+  <div class="cols" style="margin-top:1.5rem;">
+    <div class="card">
+      <h3>Ce qu'on observe</h3>
+      <ul class="small">
+        <li>Chaque module a ajouté sa <strong>colonne de score</strong></li>
+        <li>Les candidats sont triés par <strong>score total</strong></li>
+        <li>CAND_01 (GOLD) est-il dans le <strong>top 3</strong> ?</li>
+        <li>CAND_12 (BAD) est-il en <strong>bas</strong> ?</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Questions</h3>
+      <ul class="small">
+        <li>CAND_11 (tout hydrophobe) — où est-il ?</li>
+        <li>CAND_14 (self-match) — pénalisé ?</li>
+        <li>Quel module a le plus d'<strong>impact</strong> ?</li>
+        <li>Le classement est-il <strong>biologiquement cohérent</strong> ?</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Le problème de la moyenne -->
+<div class="slide">
+  <h2>Le problème : la moyenne simple</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1.5rem;">Actuellement, le score final est :</p>
+<pre style="font-size:1.2rem;">
+total = <span class="dim">(</span>score_A1 + score_A2 + score_B1
+        + score_C1 + score_C2 + score_D1
+        + ...<span class="dim">)</span> / N
+</pre>
+      <p style="margin-top:1rem;">Chaque module compte <strong>autant</strong>. Mais est-ce que la charge nette (A2) est aussi prédictive que l'ancre P2 (C1) ?</p>
+      <p style="margin-top:1rem;" class="danger"><strong>Probablement pas.</strong></p>
+    </div>
+    <div class="card" style="border:2px solid var(--gold);">
+      <h3 style="color:var(--gold);">La question centrale</h3>
+      <p class="big" style="margin:1rem 0;">Peut-on faire mieux qu'une moyenne ?</p>
+      <p>Peut-on <strong>apprendre</strong> les bons poids à partir des données ?</p>
+      <p style="margin-top:1rem;" class="dim">C'est un problème de <strong>machine learning</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — PROJET ML              -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">4</span>
+  <h1>Score global ML</h1>
+  <p class="subtitle">Machine learning pour combiner vos scores</p>
+</div>
+
+<!-- SLIDE — Les deux objectifs -->
+<div class="slide">
+  <h2>Deux objectifs</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <h3 style="color:var(--accent);">1. Meilleur classement</h3>
+      <p>Entraîner un modèle qui combine les scores de tous les modules pour <strong>classer les candidats</strong> de façon optimale.</p>
+      <p style="margin-top:1rem;" class="dim">GOLD en haut, BAD en bas.</p>
+      <p style="margin-top:1rem;"><strong>Critère de succès :</strong> CAND_01 est-il premier ?</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">2. Quels modules comptent ?</h3>
+      <p>Extraire l'<strong>importance des features</strong> — quels modules contribuent le plus au classement ?</p>
+      <p style="margin-top:1rem;" class="dim">Est-ce l'ancre P2 ? La charge ? Le self-match ?</p>
+      <p style="margin-top:1rem;"><strong>Résultat :</strong> un ranking des modules par importance biologique.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Les données -->
+<div class="slide">
+  <h2>Les données</h2>
+  <div class="cols">
+    <div class="card">
+      <h3><code>patient_one.csv</code> <span class="badge badge-green">Training</span></h3>
+      <p class="small" style="margin-bottom:0.5rem;"><strong>75 candidats</strong> avec labels :</p>
+      <table style="font-size:0.95rem;">
+        <tr><td><span class="badge badge-gold">GOLD</span></td><td>15 candidats</td><td>Excellents</td></tr>
+        <tr><td><span class="badge badge-green">GOOD</span></td><td>20 candidats</td><td>Bons</td></tr>
+        <tr><td><span class="badge badge-purple">MEDIOCRE</span></td><td>20 candidats</td><td>Moyens</td></tr>
+        <tr><td><span class="badge badge-red">BAD</span></td><td>15 candidats</td><td>Mauvais</td></tr>
+        <tr><td><span class="badge badge-orange">TRAP</span></td><td>5 candidats</td><td>Pièges</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3><code>patient_zero.csv</code> <span class="badge badge-blue">Validation</span></h3>
+      <p class="small" style="margin-bottom:0.5rem;"><strong>18 candidats</strong> que vous connaissez déjà.</p>
+      <p class="small">On entraîne sur patient_one, on valide sur patient_zero.</p>
+      <p class="small" style="margin-top:1rem;">Le modèle n'a <strong>jamais vu</strong> patient_zero pendant l'entraînement — c'est le vrai test.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — La matrice de scores -->
+<div class="slide">
+  <h2>La matrice de scores</h2>
+<pre style="font-size:1rem;">
+python analysis/score_analysis.py --generate
+</pre>
+  <p style="margin:1rem 0;">Produit un CSV avec <strong>une ligne par candidat</strong> et <strong>une colonne par module</strong> :</p>
+  <table style="font-size:0.9rem;">
+    <tr>
+      <th>candidate_id</th><th>label</th>
+      <th>C_anchoring_P2</th><th>C_hla_anchor_p9</th><th>A_hybrid_complexity</th><th>...</th>
+    </tr>
+    <tr>
+      <td>P1_001</td><td class="gold">GOLD</td>
+      <td>2.0</td><td>1.5</td><td>0.85</td><td>...</td>
+    </tr>
+    <tr>
+      <td>P1_051</td><td class="danger">BAD</td>
+      <td>-2.5</td><td>-2.0</td><td>0.33</td><td>...</td>
+    </tr>
+  </table>
+  <p style="margin-top:1rem;" class="dim">Chaque colonne = un <strong>feature</strong> pour le modèle ML. Chaque ligne = un <strong>échantillon</strong>.</p>
+</div>
+
+<!-- SLIDE — Classification binaire -->
+<div class="slide">
+  <h2>Classification binaire</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">On simplifie en 2 classes :</p>
+      <table style="font-size:1.1rem;">
+        <tr><td><span class="badge badge-green" style="font-size:1rem;">Classe 1</span></td><td>GOLD + GOOD</td><td>On veut les <strong>sélectionner</strong></td></tr>
+        <tr><td><span class="badge badge-red" style="font-size:1rem;">Classe 0</span></td><td>BAD + TRAP</td><td>On veut les <strong>rejeter</strong></td></tr>
+        <tr><td><span class="badge badge-purple" style="font-size:1rem;">Retiré</span></td><td>MEDIOCRE</td><td>Ambigu, on l'enlève</td></tr>
+      </table>
+      <p style="margin-top:1.5rem;">Ça donne ~55 candidats pour l'entraînement : 35 positifs, 20 négatifs.</p>
+    </div>
+    <div>
+<pre style="font-size:0.95rem;">
+import pandas as pd
+
+df = pd.read_csv(
+    "analysis/scores_patient_one.csv")
+
+label_map = {
+    "GOLD": 1, "GOOD": 1,
+    "BAD": 0,  "TRAP": 0,
+}
+
+<span class="dim"># Retirer les MEDIOCRE</span>
+df = df[df["label"].isin(label_map)]
+
+y = df["label"].map(label_map)
+X = df.drop(columns=[
+    "candidate_id", "label"])
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Les modèles -->
+<div class="slide">
+  <h2>Les modèles à essayer</h2>
+  <table>
+    <tr><th>Modèle</th><th>Idée</th><th>Forces</th></tr>
+    <tr>
+      <td><strong>Logistic Regression</strong></td>
+      <td>Combinaison linéaire + sigmoïde</td>
+      <td>Simple, interprétable (poids = importance)</td>
+    </tr>
+    <tr>
+      <td><strong>Random Forest</strong></td>
+      <td>Ensemble d'arbres de décision</td>
+      <td>Capture les interactions entre modules</td>
+    </tr>
+    <tr>
+      <td><strong>Gradient Boosting</strong></td>
+      <td>Arbres séquentiels qui corrigent les erreurs</td>
+      <td>Souvent le plus performant</td>
+    </tr>
+    <tr>
+      <td><strong>SVM</strong></td>
+      <td>Hyperplan de séparation optimal</td>
+      <td>Robuste aux petits datasets</td>
+    </tr>
+    <tr>
+      <td><strong>KNN</strong></td>
+      <td>Vote des K voisins les plus proches</td>
+      <td>Aucun entraînement, baseline simple</td>
+    </tr>
+  </table>
+  <p class="dim small" style="margin-top:1rem;">Détails, code, et exemples dans <code>docs/ml-guide.md</code></p>
+</div>
+
+<!-- SLIDE — Cross-validation -->
+<div class="slide">
+  <h2>Cross-validation</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">On ne teste <strong>jamais</strong> sur les données d'entraînement. La cross-validation découpe les données en K plis :</p>
+      <div style="font-size:1.1rem; line-height:2; margin:1rem 0;">
+        <span class="badge badge-blue" style="font-size:0.9rem;">Fold 1</span> Train sur 80% → Test sur 20%<br>
+        <span class="badge badge-purple" style="font-size:0.9rem;">Fold 2</span> Train sur 80% → Test sur 20%<br>
+        <span class="badge badge-green" style="font-size:0.9rem;">Fold 3</span> Train sur 80% → Test sur 20%<br>
+        <span class="badge badge-orange" style="font-size:0.9rem;">Fold 4</span> Train sur 80% → Test sur 20%<br>
+        <span class="badge badge-red" style="font-size:0.9rem;">Fold 5</span> Train sur 80% → Test sur 20%
+      </div>
+      <p>Résultat = moyenne des 5 scores.</p>
+    </div>
+    <div>
+<pre style="font-size:0.95rem;">
+from sklearn.model_selection import (
+    cross_val_score,
+)
+from sklearn.ensemble import (
+    RandomForestClassifier,
+)
+
+model = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=5,
+)
+
+scores = cross_val_score(
+    model, X, y, cv=5,
+    scoring="accuracy",
+)
+
+print(f"Accuracy: {scores.mean():.3f}"
+      f" (+/- {scores.std():.3f})")
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Feature importance -->
+<div class="slide">
+  <h2>Feature importance</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">La question biologique clé :</p>
+      <p class="big" style="margin-bottom:1.5rem;"><strong>Quels modules de scoring sont réellement prédictifs ?</strong></p>
+      <p style="margin-bottom:1rem;">Le Random Forest mesure la contribution de chaque feature. Résultat attendu (exemple) :</p>
+      <div style="font-size:1rem; font-family:'Fira Code',monospace;">
+        <span class="highlight">C_anchoring_P2</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.19 ████████<br>
+        <span class="highlight">A_complexity</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.17 ███████<br>
+        <span class="highlight">C_hla_anchor_p9</span>&nbsp;&nbsp;&nbsp;&nbsp;0.16 ███████<br>
+        <span class="dim">A_hydrophobicity</span>&nbsp;&nbsp;&nbsp;0.14 █████<br>
+        <span class="dim">D_mutation_window</span>&nbsp;&nbsp;0.10 ████<br>
+        <span class="dim">B_proteasome</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.09 ███<br>
+        <span class="dim">A_delta_wt_mut</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.03 █<br>
+      </div>
+    </div>
+    <div>
+<pre style="font-size:0.95rem;">
+rf = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=5,
+)
+rf.fit(X_scaled, y)
+
+<span class="dim"># Importance de chaque feature</span>
+import pandas as pd
+importances = pd.Series(
+    rf.feature_importances_,
+    index=X.columns,
+).sort_values(ascending=False)
+
+for feat, imp in importances.items():
+    bar = "#" * int(imp * 50)
+    print(f"{feat:30s} {imp:.3f} {bar}")
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Le ranking final -->
+<div class="slide">
+  <h2>Le ranking final</h2>
+  <p style="margin-bottom:1rem;">Utiliser <code>predict_proba</code> pour obtenir une probabilité par candidat, puis trier :</p>
+<pre style="font-size:1.05rem;">
+<span class="dim"># Prédire sur patient_zero</span>
+proba = model.predict_proba(X_test_scaled)[:, 1]
+
+<span class="dim"># Trier par probabilité décroissante</span>
+ranking = sorted(zip(candidate_ids, proba, labels), key=lambda x: -x[1])
+
+for i, (cid, prob, label) in enumerate(ranking, 1):
+    print(f"{i:3d}. {cid}  {prob:.3f}  {label}")
+</pre>
+  <div class="card" style="margin-top:1.5rem; text-align:center; border:2px solid var(--gold);">
+    <p class="big"><strong>Critère de succès :</strong> CAND_01 (GOLD) en position #1</p>
+    <p class="dim" style="margin-top:0.5rem;">CAND_12 (BAD) et CAND_16 (TRAP) en bas du classement</p>
+  </div>
+</div>
+
+<!-- SLIDE — Données réelles -->
+<div class="slide">
+  <h2>Données réelles : <code>patient_real.csv</code></h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">Un nouveau jeu de données avec de <strong>vrais néo-antigènes</strong> de patients atteints de cancer (HNSCC) :</p>
+      <table style="font-size:1rem;">
+        <tr><th>Type</th><th>Nombre</th><th>Détail</th></tr>
+        <tr><td><span class="badge badge-green">REAL</span></td><td>69</td><td>Vrais couples WT/MUT, IC50 mesuré (3-48 nM)</td></tr>
+        <tr><td><span class="badge badge-red">DECOY</span></td><td>69</td><td>Positions P3-P8 mélangées, ancres préservées</td></tr>
+      </table>
+      <p class="small dim" style="margin-top:1rem;">Source : dbPepNeo2.0 (Frontiers in Immunology, 2022)</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold);">
+      <h3 style="color:var(--gold);">Deux analyses</h3>
+      <ul class="small">
+        <li><strong>Corrélation Spearman</strong> : votre ranking corrèle-t-il avec l'IC50 mesuré ? (69 REAL)</li>
+        <li><strong>Classification REAL vs DECOY</strong> : votre modèle distingue-t-il les vrais candidats des faux ? (138 total, AUC)</li>
+      </ul>
+      <p class="small" style="margin-top:1rem;">C'est le <strong>vrai test scientifique</strong> — des données que votre modèle n'a jamais vues, issues de vrais patients.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Extensions avancées -->
+<div class="slide">
+  <h2>Pour aller plus loin</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">SHAP — Explainabilité</h3>
+      <p class="small">Pas juste "quels modules comptent globalement" mais <strong>"pourquoi CE candidat est classé premier"</strong>.</p>
+      <p class="small" style="margin-top:0.5rem;">SHAP donne une explication par candidat : quels modules poussent le score vers le haut ou vers le bas.</p>
+      <p class="small dim" style="margin-top:0.5rem;"><code>pip install shap</code> — voir issue #48</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">NetMHCpan — Benchmark</h3>
+      <p class="small">Comparer votre pipeline avec <strong>l'état de l'art</strong> : soumettre les peptides au serveur web NetMHCpan 4.1 et comparer les rankings.</p>
+      <p class="small" style="margin-top:0.5rem;">Question clé : sur quels candidats votre pipeline et NetMHCpan sont-ils en désaccord, et pourquoi ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Voir issue #49</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Votre livrable -->
+<div class="slide">
+  <h2>Votre livrable</h2>
+  <div class="card" style="margin-bottom:1rem; text-align:center; border:2px solid var(--danger);">
+    <p><strong>Deadline : 1er mai</strong> — toutes les PR (modules + ML) et le rapport PDF doivent être rendus avant cette date.</p>
+  </div>
+  <p style="margin-bottom:1rem;">Créez <code>analysis/groupe_XX_model.py</code> :</p>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">Le script doit :</h3>
+      <ul class="small">
+        <li>Charger les matrices de scores</li>
+        <li>Comparer au moins <strong>2 modèles</strong></li>
+        <li>Afficher la <strong>cross-validation</strong></li>
+        <li>Afficher la <strong>feature importance</strong></li>
+        <li>Afficher le <strong>ranking patient_zero</strong></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Commandes</h3>
+<pre style="font-size:0.95rem;">
+<span class="dim"># 1. Générer les matrices</span>
+python analysis/score_analysis.py \
+    --generate
+
+<span class="dim"># 2. Votre modèle</span>
+python analysis/groupe_XX_model.py
+
+<span class="dim"># 3. Guide complet</span>
+<span class="dim"># → docs/ml-guide.md</span>
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Récap -->
+<div class="slide">
+  <h2>Récap</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--text-bright);">Robustesse</h3>
+      <ul>
+        <li>7 candidats pièges à gérer</li>
+        <li>3 tests minimum (nominal + edge + invalide)</li>
+        <li>Docstring avec hypothèse + limites</li>
+        <li><code>.get()</code>, check longueur, fallback 0.0</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--text-bright);">Projet ML</h3>
+      <ul>
+        <li>Entraîner sur patient_one (75 candidats)</li>
+        <li>Valider sur patient_zero (18 candidats)</li>
+        <li>Comparer 2+ modèles (cross-validation)</li>
+        <li>Feature importance : quels modules comptent ?</li>
+        <li>CAND_01 en #1 = succès</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--     SECTION — SOUTENANCE             -->
+<!-- ══════════════════════════════════════ -->
+<div class="slide section-title">
+  <span class="section-number">5</span>
+  <h1>Séance 5 — Soutenance</h1>
+  <p class="subtitle">Ce que j'attends de vous la semaine prochaine</p>
+</div>
+
+<!-- SLIDE — Format soutenance -->
+<div class="slide">
+  <h2>Format de la soutenance</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent);">
+      <h3 style="color:var(--accent);">Présentation orale</h3>
+      <ul class="small">
+        <li><strong>8-10 min</strong> par groupe + 3-5 min de questions</li>
+        <li>Support libre : slides, démo live, tableau</li>
+        <li>Tous les membres du groupe doivent parler</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">Rapport PDF</h3>
+      <ul class="small">
+        <li>Nommage : <code>rapport_groupe_XX.pdf</code></li>
+        <li>Description du module + résultats + analyse critique</li>
+        <li>Au moins <strong>1 référence scientifique</strong></li>
+        <li>À rendre avant le <strong>1er mai</strong></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Structure attendue -->
+<div class="slide">
+  <h2>Structure de la présentation</h2>
+  <table>
+    <tr><th>Partie</th><th>Durée</th><th>Contenu</th></tr>
+    <tr>
+      <td><span class="badge badge-blue">1. Module</span></td>
+      <td>2 min</td>
+      <td>Quel module, quel département, l'hypothèse biologique <strong>en une phrase</strong></td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-purple">2. Implémentation</span></td>
+      <td>3 min</td>
+      <td>Comment le score est calculé, quelles données, comment les cas limites sont gérés</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">3. Résultats</span></td>
+      <td>2 min</td>
+      <td>Montrer 2-3 candidats bien et mal scorés. Est-ce <strong>biologiquement cohérent</strong> ?</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-orange">4. Analyse critique</span></td>
+      <td>2 min</td>
+      <td>Un <strong>faux positif</strong> concret, une <strong>limitation</strong>, une <strong>amélioration</strong> possible</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-gold">5. ML (si applicable)</span></td>
+      <td>1 min</td>
+      <td>Feature importance : votre module est-il prédictif ? Quel rang ?</td>
+    </tr>
+  </table>
+</div>
+
+<!-- SLIDE — Ce que je note -->
+<div class="slide">
+  <h2>Critères d'évaluation</h2>
+  <div class="cols-3">
+    <div class="card" style="border-top:3px solid var(--accent3);">
+      <h3 style="color:var(--accent3);">Code</h3>
+      <ul class="small">
+        <li><code>get_score</code> fonctionne</li>
+        <li>Cas limites gérés (pas de crash)</li>
+        <li>3+ tests pertinents</li>
+        <li>CI verte</li>
+        <li>Code propre (ruff + black)</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">Bio</h3>
+      <ul class="small">
+        <li>Hypothèse biologique claire</li>
+        <li>Score interprétable</li>
+        <li>Faux positif identifié</li>
+        <li>Limitation honnête</li>
+        <li>Référence scientifique</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">Oral</h3>
+      <ul class="small">
+        <li>Explication claire et pédagogique</li>
+        <li>Résultats concrets montrés</li>
+        <li>Analyse critique (pas juste "ça marche")</li>
+        <li>Réponses aux questions maîtrisées</li>
+        <li>Tous les membres participent</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Questions type soutenance -->
+<div class="slide">
+  <h2>Le type de questions que je poserai</h2>
+  <div class="cols">
+    <div>
+      <h3 style="color:var(--accent);">Techniques</h3>
+      <ul class="small">
+        <li>"Que se passe-t-il si le peptide contient un X ?"</li>
+        <li>"Combien de fois le fichier PSSM est-il chargé ?"</li>
+        <li>"Votre module est-il déterministe ?"</li>
+        <li>"Pourquoi <code>.get(aa, 0.0)</code> plutôt que <code>[aa]</code> ?"</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent2);">Biologiques</h3>
+      <ul class="small">
+        <li>"Un score élevé suffit-il pour un bon candidat vaccinal ?"</li>
+        <li>"Quel autre module complète le mieux le vôtre ?"</li>
+        <li>"Ce module fonctionnerait-il avec un autre allèle HLA ?"</li>
+        <li>"Pourquoi CAND_11 est-il bien/mal classé ?"</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; text-align:center; border:2px solid var(--danger);">
+    <p><strong>La question clé :</strong> "Citez un candidat que votre module classe mal, et expliquez pourquoi."</p>
+    <p class="dim small" style="margin-top:0.5rem;">Si vous pouvez répondre à ça, vous maîtrisez votre module.</p>
+  </div>
+</div>
+
+<!-- SLIDE — Questions -->
+<div class="slide section-title">
+  <h1>Questions ?</h1>
+  <p class="subtitle" style="margin-top:1rem;">
+    Guide ML complet : <code>docs/ml-guide.md</code><br>
+    Issue #39 sur GitHub<br>
+    Script starter : <code>analysis/score_analysis.py</code>
+  </p>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const slideNum = document.getElementById('slideNum');
+  let current = 0;
+
+  function showSlide(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    slideNum.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); showSlide(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); showSlide(current - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? showSlide(current + 1) : showSlide(current - 1); }
+  });
+
+  showSlide(0);
+</script>
+</body>
+</html>
