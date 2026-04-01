@@ -60,12 +60,13 @@
 | 12 | D1 | Self exact match | ★☆☆ | D |
 | 12 | D5 | WT peptide presentation in self proteome | ★★☆ | D |
 | 13 | C5 | Total PSSM binding score (weighted) | ★★☆ | C |
+| 14 | A7 | Aromatic residue fraction | ★☆☆ | A |
 
 ## Department coverage
 
 | Department | Groups | Active modules |
 |------------|--------|----------------|
-| A — Peptide properties | 01, 05, 08, 09, 11 | A1, A2, A3, A4, A8, A9 |
+| A — Peptide properties | 01, 05, 08, 09, 11, 14 | A1, A2, A3, A4, A7, A8, A9 |
 | B — Processing | 06, 07, 10 | B1, B2, B3, B4, B5 |
 | C — HLA binding | 02, 03, 04, 13 | C1, C2, C3, C4, C5, C6 |
 | D — Self / safety | 02, 11, 12 | D1, D2, D3, D5 |
