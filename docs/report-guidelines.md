@@ -6,6 +6,7 @@
 - **Maximum 10 pages** (no minimum — quality over quantity)
 - **Language**: English or French
 - **Deadline: May 1st**
+- **Submit by email** to `philippe.rinaudo [at] universite-paris-saclay [dot] fr`
 - Structure is free, but the report must cover the sections below
 
 ## What to include
