@@ -1,113 +1,148 @@
+"""
+Score Analysis & Global Scoring Model
+======================================
+
+Two objectives:
+
+1. BUILD A GLOBAL SCORING MODEL
+   The pipeline currently averages all module scores equally.
+   Can we do better? Use machine learning to find the optimal way
+   to combine scores and rank neoepitope candidates.
+
+2. IDENTIFY THE MOST PREDICTIVE MODULES
+   Which scoring modules actually matter for distinguishing good
+   candidates from bad ones? Feature importance analysis tells us
+   which biological signals are the most informative.
+
+How to use this script
+----------------------
+
+    # Step 1 — Generate the score matrices (this part is done for you)
+    python analysis/score_analysis.py --generate
+
+    # Step 2 — YOUR WORK: train models, evaluate, analyze
+    python analysis/score_analysis.py --train
+
+Data
+----
+    - patient_one.csv  : 75 candidates (training) with labels
+    - patient_zero.csv : 18 candidates (validation)
+
+Requirements
+------------
+    pip install scikit-learn matplotlib pandas
+"""
+
 from __future__ import annotations
 
 import argparse
+import csv
+import sys
 from pathlib import Path
 
-import pandas as pd
-
-from logic.types import Candidate
-from modules.groupe_06 import get_score
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def load_candidates(csv_path: Path) -> pd.DataFrame:
-    """Load candidate table from CSV."""
-    if not csv_path.exists():
-        raise FileNotFoundError(f"Input CSV not found: {csv_path}")
-    return pd.read_csv(csv_path)
+# ══════════════════════════════════════════════════════════════════════
+#  STEP 1 — Generate the score matrix (provided)
+# ══════════════════════════════════════════════════════════════════════
 
 
-def row_to_candidate(row: pd.Series) -> Candidate:
-    """Convert one CSV row into a Candidate object."""
-    return Candidate(
-        candidate_id=row.get("candidate_id", ""),
-        peptide_wt=row.get("peptide_wt", ""),
-        peptide_mut=row.get("peptide_mut", ""),
-        mut_pos_1based=row.get("mut_pos_1based", 0),
-    )
+def generate_score_matrix(patient_file: str = "patient_one.csv") -> None:
+    """Run the pipeline on a patient file and save the score matrix as CSV."""
+    from logic.orchestrator import run_modules
+    from logic.types import Candidate
+
+    data_dir = PROJECT_ROOT / "data"
+    input_path = data_dir / patient_file
+
+    candidates = []
+    with open(input_path) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            candidates.append(
+                Candidate(
+                    candidate_id=row["candidate_id"],
+                    peptide_wt=row["peptide_wt"],
+                    peptide_mut=row["peptide_mut"],
+                    mut_pos_1based=int(row["mut_pos_1based"]),
+                    gene=row.get("gene", ""),
+                    hla_allele=row.get("hla_allele", ""),
+                    note=row.get("note", ""),
+                )
+            )
+
+    scored = run_modules(candidates, PROJECT_ROOT / "modules")
+
+    output_dir = PROJECT_ROOT / "analysis"
+    output_dir.mkdir(exist_ok=True)
+
+    all_score_names = set()
+    for c in scored:
+        all_score_names.update(c.scores.keys())
+    all_score_names = sorted(all_score_names)
+
+    output_path = output_dir / f"scores_{patient_file}"
+    with open(output_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["candidate_id", "label"] + all_score_names)
+        for c in scored:
+            label = c.note.split()[0] if c.note else "UNKNOWN"
+            row = [c.candidate_id, label]
+            row += [c.scores.get(name, "") for name in all_score_names]
+            writer.writerow(row)
+
+    print(f"Score matrix saved to {output_path}")
+    print(f"  {len(scored)} candidates x {len(all_score_names)} scores")
+    print(f"  Scores: {', '.join(all_score_names)}")
 
 
-def infer_label_from_note(note: object) -> str:
-    """
-    Extract a coarse label from the 'note' column if available.
-    Examples:
-    - 'GOLD — ...' -> 'GOLD'
-    - 'GOOD — ...' -> 'GOOD'
-    - 'BAD — ...'  -> 'BAD'
-    - 'TRAP — ...' -> 'TRAP'
-    """
-    if note is None:
-        return ""
-    text = str(note).strip().upper()
-
-    for label in ["GOLD", "GOOD", "MEDIOCRE", "BAD", "TRAP", "REAL", "DECOY"]:
-        if text.startswith(label):
-            return label
-    return ""
+# ══════════════════════════════════════════════════════════════════════
+#  STEP 2 — Train and evaluate models
+#
+#  DO NOT implement your model here.
+#  Create your own file: analysis/groupe_XX_model.py
+#  See docs/ml-guide.md for the full guide and issue #39 on GitHub.
+# ══════════════════════════════════════════════════════════════════════
 
 
-def compute_scores(df: pd.DataFrame) -> pd.DataFrame:
-    """Run the group module on every candidate row."""
-    rows = []
-
-    for _, row in df.iterrows():
-        candidate = row_to_candidate(row)
-        score_name, score_value = get_score(candidate)
-
-        result = dict(row)
-
-        # Add label if possible
-        if "label" not in result:
-            result["label"] = infer_label_from_note(result.get("note", ""))
-
-        # Add module score
-        result[score_name] = score_value
-        rows.append(result)
-
-    return pd.DataFrame(rows)
+def train_and_evaluate():
+    """Placeholder — see docs/ml-guide.md for instructions."""
+    print("Create your model in analysis/groupe_XX_model.py")
+    print("See docs/ml-guide.md for the full guide.")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Generate a simple score matrix for Open-NeoVax candidates"
-    )
-    parser.add_argument(
-        "--input_csv",
-        type=str,
-        default="data/patient_zero.csv",
-        help="Input candidate CSV",
-    )
-    parser.add_argument(
-        "--output_csv",
-        type=str,
-        default="analysis/score_matrix_patient_zero.csv",
-        help="Output score matrix CSV",
-    )
+# ══════════════════════════════════════════════════════════════════════
+#  MAIN
+# ══════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Score analysis and ML model training")
     parser.add_argument(
         "--generate",
         action="store_true",
-        help="Generate score matrix",
+        help="Generate score matrices from pipeline output",
+    )
+    parser.add_argument(
+        "--train", action="store_true", help="Train and evaluate ML models"
     )
     args = parser.parse_args()
 
-    if not args.generate:
-        print("Nothing to do. Use --generate to build the score matrix.")
-        return
+    if not args.generate and not args.train:
+        parser.print_help()
+        sys.exit(0)
 
-    input_path = Path(args.input_csv)
-    output_path = Path(args.output_csv)
+    if args.generate:
+        print("Generating score matrix for patient_one...")
+        generate_score_matrix("patient_one.csv")
+        print()
+        print("Generating score matrix for patient_zero...")
+        generate_score_matrix("patient_zero.csv")
+        print()
+        print("Generating score matrix for patient_real...")
+        generate_score_matrix("patient_real.csv")
+        print()
 
-    df = load_candidates(input_path)
-    scored_df = compute_scores(df)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    scored_df.to_csv(output_path, index=False)
-
-    print(f"Loaded {len(df)} candidates from: {input_path}")
-    print(f"Saved score matrix to: {output_path}")
-    print("Columns:")
-    for col in scored_df.columns:
-        print(f" - {col}")
-
-
-if __name__ == "__main__":
-    main()
+    if args.train:
+        train_and_evaluate()
