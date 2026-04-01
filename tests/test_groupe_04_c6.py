@@ -135,7 +135,6 @@ def test_none_peptide_mut_returns_neutral_score():
     assert value == 0.0
 
 
-
 def test_lowercase_peptides_are_accepted():
     candidate = _make_candidate(peptide_mut="aaaaaaaav", peptide_wt="aaaaaaaaa")
     name, value = get_score(candidate)
