@@ -1,14 +1,13 @@
 """
-Template module — Open-NeoVax
-=============================
+D2 — Approximate self-peptide match (Group 02)
+===============================================
 
-This file is a TEMPLATE for student modules.
-It shows the exact structure your module must follow.
+Models how dissimilar a mutant peptide is from a reference “self” peptide
+by counting residue mismatches along the sequence (Hamming distance).
 
-You can copy and rename it to start your own module.
-For example: cp template_module.py groupe_01.py
-
-THIS FILE IS NOT EXECUTED by the pipeline (it is ignored by the orchestrator).
+Intended to capture approximate self-reactivity: peptides that are
+farther from self receive higher scores (less self-like), while
+peptides very close to self receive lower scores (more self-like).
 """
 
 from __future__ import annotations
@@ -63,8 +62,8 @@ def _load_self_peptides():
 
 
 def _hamming(a, b) -> int:
-    """Compute the number of differences in sequences"""
-    return (sum(c1 != c2) for c1, c2 in zip(a, b))
+    """Compute the number of differences in sequences."""
+    return sum(c1 != c2 for c1, c2 in zip(a, b))
 
 
 # ══════════════════════════════════════════════════════════════════════
