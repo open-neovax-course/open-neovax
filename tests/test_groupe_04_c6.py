@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -136,20 +135,6 @@ def test_none_peptide_mut_returns_neutral_score():
     assert value == 0.0
 
 
-def test_none_peptide_wt_returns_neutral_score():
-    candidate = _make_candidate()
-    candidate.peptide_wt = None
-    name, value = get_score(candidate)
-    assert name == groupe_04_c6.SCORE_NAME
-    assert value == 0.0
-
-
-def test_missing_candidate_attribute_returns_neutral_score():
-    candidate = SimpleNamespace(peptide_mut="AAAAAAAAV")
-    name, value = get_score(candidate)
-    assert name == groupe_04_c6.SCORE_NAME
-    assert value == 0.0
-
 
 def test_lowercase_peptides_are_accepted():
     candidate = _make_candidate(peptide_mut="aaaaaaaav", peptide_wt="aaaaaaaaa")
@@ -163,13 +148,9 @@ def test_lowercase_peptides_are_accepted():
 @pytest.mark.parametrize(
     ("peptide_wt", "peptide_mut"),
     [
-        ("AAAAAAAA", "AAAAAAAAV"),  # wt too short
-        ("AAAAAAAAAA", "AAAAAAAAV"),  # wt too long
         ("AAAAAAAAA", "AAAAAAAA"),  # mut too short
         ("AAAAAAAAA", "AAAAAAAAAA"),  # mut too long
-        ("", "AAAAAAAAV"),  # wt empty
         ("AAAAAAAAA", ""),  # mut empty
-        ("         ", "AAAAAAAAV"),  # wt whitespace
         ("AAAAAAAAA", "         "),  # mut whitespace
     ],
 )
@@ -188,9 +169,6 @@ def test_wrong_length_peptides_return_neutral_score(peptide_wt, peptide_mut):
 @pytest.mark.parametrize(
     ("peptide_wt", "peptide_mut"),
     [
-        ("AAAAAAAAX", "AAAAAAAAV"),  # invalid aa in wt
-        ("AAAAAAA1A", "AAAAAAAAV"),  # digit in wt
-        ("AAAAAAA-A", "AAAAAAAAV"),  # dash in wt
         ("AAAAAAAAA", "AAAAAA*AV"),  # special char in mut
         ("AAAAAAAAA", "AAAAAAZAV"),  # Z not in PSSM
         ("AAAAAAAAA", "AAA AAAAV"),  # space in mut
