@@ -356,7 +356,7 @@ def main() -> None:
         print("  [SKIP] Real data files not found.")
     print()
 
-    # REAL vs DECOY 
+    # REAL vs DECOY
     # can we tell real neoantigens from shuffled fakes?
     print("[7/7] Real data — REAL vs DECOY classification...")
     print("=" * 60)
