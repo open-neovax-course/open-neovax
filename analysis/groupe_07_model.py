@@ -356,12 +356,95 @@ def feature_selection(
 
 
 # =============================================================================
+# VISUALIZATIONS
+# =============================================================================
+
+
+def visualizations(
+    rf,
+    lr,
+    X_train_scaled,
+    y_train: pd.Series,
+    X_zero_scaled,
+    y_zero_raw: list[str],
+    feature_names: list[str],
+    analysis_dir: Path,
+) -> None:
+    """Generate heatmap, ROC curve and confusion matrix plots."""
+
+    from sklearn.metrics import (
+        ConfusionMatrixDisplay,
+        confusion_matrix,
+        roc_curve,
+    )
+    from sklearn.model_selection import cross_val_predict
+
+    print("=" * 60)
+    print("Visualizations")
+    print("=" * 60)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig.suptitle("Open-NeoVax", fontsize=13)
+
+    # --- Plot 1: Score heatmap (patient_zero) ---
+    ax = axes[0]
+    X_zero_df = pd.DataFrame(X_zero_scaled, columns=feature_names)
+    X_zero_df.index = y_zero_raw
+    im = ax.imshow(X_zero_df.T.values, aspect="auto", cmap="RdYlGn")
+    ax.set_xticks(range(len(y_zero_raw)))
+    ax.set_xticklabels(y_zero_raw, rotation=90, fontsize=7)
+    ax.set_yticks(range(len(feature_names)))
+    ax.set_yticklabels(feature_names, fontsize=7)
+    ax.set_title("Score heatmap (patient_zero)")
+    plt.colorbar(im, ax=ax)
+
+    # --- Plot 2: ROC curve (cross-validated on patient_one) ---
+    ax = axes[1]
+    y_proba_cv = cross_val_predict(
+        rf, X_train_scaled, y_train, cv=5, method="predict_proba"
+    )[:, 1]
+    fpr, tpr, _ = roc_curve(y_train, y_proba_cv)
+    from sklearn.metrics import auc
+
+    roc_auc = auc(fpr, tpr)
+    ax.plot(fpr, tpr, color="#e74c3c", lw=2, label=f"RF (AUC = {roc_auc:.3f})")
+    ax.plot([0, 1], [0, 1], "k--", lw=1)
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title("ROC Curve (cross-validated, patient_one)")
+    ax.legend()
+
+    # --- Plot 3: Confusion matrix (hold-out split) ---
+    ax = axes[2]
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_train_scaled, y_train, test_size=0.2, random_state=RANDOM_STATE
+    )
+    rf_ho = RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+    )
+    rf_ho.fit(X_tr, y_tr)
+    cm = confusion_matrix(y_te, rf_ho.predict(X_te))
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["BAD/TRAP", "GOOD/GOLD"],
+    )
+    disp.plot(ax=ax, colorbar=False)
+    ax.set_title("Confusion Matrix (hold-out 20%)")
+
+    plt.tight_layout()
+    out_path = analysis_dir / "visualizations.png"
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+    print(f"  Plot saved -> {out_path}\n")
+
+
+# =============================================================================
 # MAIN PIPELINE
 # =============================================================================
 
 
 def main() -> None:
-    print("\nOpen-NeoVax -- ML Pipeline -- groupe 07")
+    print("\nOpen-NeoVax -- ML Pipeline")
     print("=" * 60)
 
     # ------------------------------------------------------------------
@@ -465,6 +548,20 @@ def main() -> None:
     # Feature selection
     # ------------------------------------------------------------------
     feature_selection(X_train_scaled, y_train, feature_names, imp_rf)
+
+    # ------------------------------------------------------------------
+    # Visualizations (heatmap, ROC curve, confusion matrix)
+    # ------------------------------------------------------------------
+    visualizations(
+        rf,
+        lr,
+        X_train_scaled,
+        y_train,
+        X_zero_scaled,
+        labels_zero,
+        feature_names,
+        PROJECT_ROOT / "analysis",
+    )
 
 
 if __name__ == "__main__":
