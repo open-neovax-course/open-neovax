@@ -13,7 +13,11 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import (
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    RandomForestClassifier,
+)
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -439,6 +443,165 @@ def visualizations(
 
 
 # =============================================================================
+# Hyperparameter tuning  : BEAT 90% ACCURACY
+# =============================================================================
+
+
+def Hyperparameter_tuning(X_scaled, y: pd.Series) -> None:
+    """Try to beat 90% cross-validation accuracy with a tuned model.
+    Tests several combinations and reports the best configuration found."""
+
+    best_score = 0.0
+    best_params: dict = {}
+
+    for n_est in (100, 200, 300):
+        for depth in (3, 5, 7, None):
+            model = RandomForestClassifier(
+                n_estimators=n_est,
+                max_depth=depth,
+                random_state=RANDOM_STATE,
+            )
+            scores = cross_val_score(model, X_scaled, y, cv=5, scoring="accuracy")
+            mean = scores.mean()
+            depth_label = str(depth) if depth else "None"
+            marker = "  <-- best so far" if mean > best_score else ""
+            print(
+                f"  n_estimators={n_est:3d}  max_depth={depth_label:4s}"
+                f"  acc={mean:.3f} +/- {scores.std():.3f}{marker}"
+            )
+            if mean > best_score:
+                best_score = mean
+                best_params = {"n_estimators": n_est, "max_depth": depth}
+
+    print()
+    status = "YES" if best_score >= 0.90 else "NOT YET"
+    print(f"  Best accuracy: {best_score:.3f} -> Beat 90%? {status}")
+    print(f"  Best params  : {best_params}\n")
+
+
+# =============================================================================
+# ORDINAL REGRESSION :predict label 0-4 instead of binary
+# =============================================================================
+
+ORDINAL_MAP = {"TRAP": 0, "BAD": 1, "MEDIOCRE": 2, "GOOD": 3, "GOLD": 4}
+
+
+def load_training_ordinal(path: Path) -> tuple[pd.DataFrame, pd.Series, list[str]]:
+    """Load training data with ordinal labels (0=TRAP ... 4=GOLD).
+
+    Keeps ALL candidates including MEDIOCRE (needed for ordinal scale).
+    """
+    df = pd.read_csv(path)
+    label_col = _get_label_column(df)
+    if label_col is None:
+        return pd.DataFrame(), pd.Series(dtype=float), []
+
+    df["_label"] = df[label_col].astype(str).apply(_extract_label_keyword)
+    df = df[df["_label"].isin(ORDINAL_MAP)].copy()
+    y = df["_label"].map(ORDINAL_MAP)
+    feature_cols = [c for c in _feature_columns(df) if not c.startswith("_")]
+    X = df[feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    return X, y, feature_cols
+
+
+def ordinal_regression(path_train: Path, path_val: Path) -> None:
+    """Train a Gradient Boosting Regressor to predict ordinal labels (0-4).
+
+    Keeps ALL candidates including MEDIOCRE (justified: it sits at position 2
+    on the ordinal scale TRAP=0, BAD=1, MEDIOCRE=2, GOOD=3, GOLD=4).
+
+    Evaluates with MAE (cross-validated), shows predictions vs actual on
+    training samples, then produces an ordinal ranking of patient_zero.
+    """
+
+    # --- Load training data (all labels including MEDIOCRE) ---
+    X_ord, y_ord, feature_cols = load_training_ordinal(path_train)
+    if X_ord.empty:
+        print("  [SKIP] Could not load ordinal data.\n")
+        return
+
+    inv_map = {v: k for k, v in ORDINAL_MAP.items()}
+
+    scaler_ord = StandardScaler()
+    X_ord_scaled = scaler_ord.fit_transform(X_ord)
+
+    regressor = GradientBoostingRegressor(
+        n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+    )
+
+    mae_scores = cross_val_score(
+        regressor, X_ord_scaled, y_ord, cv=5, scoring="neg_mean_absolute_error"
+    )
+    mae = -mae_scores.mean()
+
+    print(f"  Candidates (all labels): {len(y_ord)}")
+    print(
+        f"  Label distribution     : " f"{y_ord.value_counts().sort_index().to_dict()}"
+    )
+    print(f"  MAE (5-fold CV)        : {mae:.3f}  (scale: 0=TRAP ... 4=GOLD)")
+    print("  (MAE < 0.5 = off by less than half a grade on average)\n")
+    if mae < 0.5:
+        print("  Good result: predictions are on average < 0.5 grade off.")
+    else:
+        print("  Moderate result: consider more features or tuning.")
+
+    regressor.fit(X_ord_scaled, y_ord)
+
+    preds_train = regressor.predict(X_ord_scaled)
+    print("\n  Sample predictions — patient_one (first 10):")
+    print(f"  {'Actual':10s}  {'Predicted':10s}  {'Score':>5s}  {'Error':>6s}")
+    print("  " + "-" * 40)
+    for actual, pred in list(zip(y_ord, preds_train))[:10]:
+        label_actual = inv_map.get(int(round(actual)), "?")
+        label_pred = inv_map.get(int(round(pred)), "?")
+        error = abs(actual - pred)
+        print(f"  {label_actual:10s}  {label_pred:10s}  " f"{pred:5.2f}  {error:6.2f}")
+
+    # Ordinal ranking on patient_zero
+    df_val = pd.read_csv(path_val)
+    label_col_val = _get_label_column(df_val)
+    if label_col_val:
+        labels_val = (
+            df_val[label_col_val].astype(str).apply(_extract_label_keyword).tolist()
+        )
+    else:
+        labels_val = ["UNKNOWN"] * len(df_val)
+
+    val_feature_cols = _feature_columns(df_val)
+    X_val = (
+        df_val[val_feature_cols]
+        .apply(pd.to_numeric, errors="coerce")
+        .fillna(0.0)
+        .reindex(columns=feature_cols, fill_value=0.0)
+    )
+
+    X_val_scaled = scaler_ord.transform(X_val)
+    preds_val = regressor.predict(X_val_scaled)
+
+    ranking = sorted(
+        zip(df_val["candidate_id"].tolist(), preds_val, labels_val),
+        key=lambda x: -x[1],
+    )
+
+    print("\n  Ordinal ranking — patient_zero:")
+    print(f"  {'#':>3}  {'ID':10s}  {'Score':>7s}  Label")
+    print("  " + "-" * 35)
+    cand01_rank = None
+    for i, (cid, score, label) in enumerate(ranking, 1):
+        marker = "  <-- TARGET" if label == "GOLD" else ""
+        if cid == "CAND_01":
+            cand01_rank = i
+        print(f"  {i:3}.  {cid:10s}  {score:5.2f}/4  {label}{marker}")
+
+    print()
+    if cand01_rank == 1:
+        print("  SUCCESS: CAND_01 is ranked #1 with ordinal regression!")
+    elif cand01_rank:
+        print(f"  WARNING: CAND_01 is ranked #{cand01_rank} (target: #1)")
+    print()
+
+
+# =============================================================================
 # MAIN PIPELINE
 # =============================================================================
 
@@ -542,7 +705,6 @@ def main() -> None:
 
     print_ranking(rf, X_zero_scaled, ids_zero, labels_zero)
     print("Done.")
-    print("Plot saved -> analysis/groupe_07_importance_rf.png")
 
     # ------------------------------------------------------------------
     # Feature selection
@@ -562,6 +724,15 @@ def main() -> None:
         feature_names,
         PROJECT_ROOT / "analysis",
     )
+    # ------------------------------------------------------------------
+    # Hyperparameter tuning
+    # ------------------------------------------------------------------
+    Hyperparameter_tuning(X_train_scaled, y_train)
+
+    # ------------------------------------------------------------------
+    # Ordinal regression
+    # ------------------------------------------------------------------
+    ordinal_regression(PATIENT_ONE, PATIENT_ZERO)
 
 
 if __name__ == "__main__":
