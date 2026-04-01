@@ -65,6 +65,31 @@ def _hamming(a, b) -> int:
     """Compute the number of differences in sequences."""
     return sum(c1 != c2 for c1, c2 in zip(a, b))
 
+def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
+    """Example internal function.
+
+    Replace this computation with your biological logic.
+    """
+    pep = candidate.peptide_mut
+    if not pep:
+        return (SCORE_NAME, 0.0)
+    pep = pep.strip().upper()
+    corpus = _load_self_peptides()
+    same_len = [p for p in corpus if len(p) == len(pep)]
+    if not same_len:
+        return (SCORE_NAME, 0.0)
+    min_dist = min(_hamming(pep, p) for p in same_len)
+    if min_dist == 0:
+        score = -10
+    elif min_dist == 1:
+        score = -5
+    elif min_dist == 2:
+        score = -3
+    else:
+        score = -1 / min_dist
+
+    return (SCORE_NAME, float(score))
+
 
 # ══════════════════════════════════════════════════════════════════════
 #  PUBLIC FUNCTION (module entry point)
@@ -94,22 +119,4 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-    pep = candidate.peptide_mut
-    if not pep:
-        return (SCORE_NAME, 0.0)
-    pep = pep.strip().upper()
-    corpus = _load_self_peptides()
-    same_len = [p for p in corpus if len(p) == len(pep)]
-    if not same_len:
-        return (SCORE_NAME, 0.0)
-    min_dist = min(_hamming(pep, p) for p in same_len)
-    if min_dist == 0:
-        score = -10
-    elif min_dist == 1:
-        score = -5
-    elif min_dist == 2:
-        score = -3
-    else:
-        score = -1 / min_dist
-
-    return (SCORE_NAME, float(score))
+    return _D_distance_score(candidate)
