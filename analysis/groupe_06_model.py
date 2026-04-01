@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -13,12 +18,12 @@ from sklearn.preprocessing import StandardScaler
 
 
 def load_score_matrix(csv_path: Path) -> pd.DataFrame:
-    """Load a score matrix CSV."""
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV not found: {csv_path}")
     return pd.read_csv(csv_path)
 
 
 def normalize_label(value: object) -> str:
-    """Normalize label strings safely."""
     if value is None:
         return ""
     return str(value).strip().upper()
@@ -26,8 +31,10 @@ def normalize_label(value: object) -> str:
 
 def build_binary_dataset(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Keep only GOOD/GOLD as positive and BAD/TRAP as negative.
-    Drop MEDIOCRE and unknown labels.
+    Keep only:
+    GOLD / GOOD -> 1
+    BAD / TRAP  -> 0
+    Drop MEDIOCRE and other labels.
     """
     label_map = {
         "GOLD": 1,
@@ -37,17 +44,18 @@ def build_binary_dataset(df: pd.DataFrame) -> pd.DataFrame:
     }
 
     work = df.copy()
+
+    if "label" not in work.columns:
+        raise ValueError("Input score matrix must contain a 'label' column.")
+
     work["label_str"] = work["label"].map(normalize_label)
     work = work[work["label_str"].isin(label_map.keys())].copy()
     work["y"] = work["label_str"].map(label_map)
+
     return work
 
 
 def get_feature_columns(df: pd.DataFrame) -> list[str]:
-    """
-    Return numeric score columns only.
-    Exclude metadata columns.
-    """
     excluded = {
         "candidate_id",
         "label",
@@ -55,6 +63,12 @@ def get_feature_columns(df: pd.DataFrame) -> list[str]:
         "y",
         "dataset",
         "patient",
+        "note",
+        "gene",
+        "hla_allele",
+        "peptide_wt",
+        "peptide_mut",
+        "mut_pos_1based",
     }
 
     feature_cols = []
@@ -68,7 +82,6 @@ def get_feature_columns(df: pd.DataFrame) -> list[str]:
 
 
 def evaluate_models(X: pd.DataFrame, y: pd.Series) -> None:
-    """Run 5-fold cross-validation on two baseline models."""
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     models = {
@@ -101,7 +114,6 @@ def evaluate_models(X: pd.DataFrame, y: pd.Series) -> None:
 
 
 def fit_logistic_regression(X: pd.DataFrame, y: pd.Series) -> Pipeline:
-    """Fit the logistic regression pipeline."""
     pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -114,7 +126,6 @@ def fit_logistic_regression(X: pd.DataFrame, y: pd.Series) -> Pipeline:
 
 
 def fit_random_forest(X: pd.DataFrame, y: pd.Series) -> Pipeline:
-    """Fit the random forest pipeline."""
     pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -133,7 +144,6 @@ def fit_random_forest(X: pd.DataFrame, y: pd.Series) -> Pipeline:
 
 
 def show_feature_importance(X: pd.DataFrame, y: pd.Series) -> None:
-    """Print top feature weights/importances."""
     print("\n=== Feature importance / coefficients ===")
 
     logreg_pipeline = fit_logistic_regression(X, y)
@@ -154,46 +164,36 @@ def show_feature_importance(X: pd.DataFrame, y: pd.Series) -> None:
     print(importances.head(10))
 
 
-def rank_patient_zero(
-    train_df: pd.DataFrame,
-    patient_zero_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Train on patient_one binary subset and rank patient_zero candidates
-    using predicted probability of the positive class.
-    """
+def rank_patient_zero(train_df: pd.DataFrame, zero_df: pd.DataFrame) -> pd.DataFrame:
     train_bin = build_binary_dataset(train_df)
     feature_cols = get_feature_columns(train_bin)
+
+    if not feature_cols:
+        raise ValueError("No numeric feature columns found for training.")
 
     X_train = train_bin[feature_cols]
     y_train = train_bin["y"]
 
     model = fit_logistic_regression(X_train, y_train)
 
-    zero_df = patient_zero_df.copy()
     missing_cols = [col for col in feature_cols if col not in zero_df.columns]
     if missing_cols:
-        raise ValueError(
-            f"patient_zero score matrix is missing feature columns: {missing_cols}"
-        )
+        raise ValueError(f"Missing feature columns in patient_zero: {missing_cols}")
 
-    X_zero = zero_df[feature_cols]
-    zero_df["pred_proba_good"] = model.predict_proba(X_zero)[:, 1]
+    X_zero = zero_df[feature_cols].copy()
+    zero_rank = zero_df.copy()
+    zero_rank["pred_proba_good"] = model.predict_proba(X_zero)[:, 1]
 
     sort_cols = ["pred_proba_good"]
     ascending = [False]
-    if "candidate_id" in zero_df.columns:
+    if "candidate_id" in zero_rank.columns:
         sort_cols.append("candidate_id")
         ascending.append(True)
 
-    zero_df = zero_df.sort_values(sort_cols, ascending=ascending).reset_index(drop=True)
+    zero_rank = zero_rank.sort_values(sort_cols, ascending=ascending).reset_index(drop=True)
 
-    output_cols = []
-    for col in ["candidate_id", "label", "pred_proba_good"]:
-        if col in zero_df.columns:
-            output_cols.append(col)
-
-    return zero_df[output_cols]
+    keep_cols = [c for c in ["candidate_id", "label", "pred_proba_good"] if c in zero_rank.columns]
+    return zero_rank[keep_cols]
 
 
 def main() -> None:
@@ -203,20 +203,20 @@ def main() -> None:
     parser.add_argument(
         "--train_csv",
         type=str,
-        default="analysis/score_matrix_patient_one.csv",
+        default="analysis/scores_patient_one.csv",
         help="Path to score matrix for patient_one",
     )
     parser.add_argument(
         "--zero_csv",
         type=str,
-        default="analysis/score_matrix_patient_zero.csv",
+        default="analysis/scores_patient_zero.csv",
         help="Path to score matrix for patient_zero",
     )
     parser.add_argument(
         "--output_csv",
         type=str,
         default="analysis/patient_zero_ranking_groupe_06.csv",
-        help="Output CSV for patient_zero ranking",
+        help="Output ranking CSV",
     )
     args = parser.parse_args()
 
@@ -224,22 +224,14 @@ def main() -> None:
     zero_path = Path(args.zero_csv)
     output_path = Path(args.output_csv)
 
-    if not train_path.exists():
-        raise FileNotFoundError(f"Training CSV not found: {train_path}")
-    if not zero_path.exists():
-        raise FileNotFoundError(f"Patient zero CSV not found: {zero_path}")
-
     train_df = load_score_matrix(train_path)
     zero_df = load_score_matrix(zero_path)
-
-    if "label" not in train_df.columns:
-        raise ValueError("Training CSV must contain a 'label' column.")
 
     train_bin = build_binary_dataset(train_df)
     feature_cols = get_feature_columns(train_bin)
 
     if not feature_cols:
-        raise ValueError("No numeric feature columns found in the training CSV.")
+        raise ValueError("No usable numeric feature columns found in training CSV.")
 
     X = train_bin[feature_cols]
     y = train_bin["y"]
