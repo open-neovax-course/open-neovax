@@ -55,6 +55,34 @@ This produces two CSV files:
 Same format. This is the dataset you already know — CAND_01 (GOLD) should end up
 at the top of your ranking.
 
+**`analysis/scores_patient_real.csv`** — Real experimental data (138 candidates)
+
+This dataset contains **real neoantigen data** from published research
+(dbPepNeo2.0, HNSCC tumors):
+
+- **69 REAL candidates**: true WT/MUT peptide pairs from cancer patients with
+  measured IC50 binding affinity (3-48 nM). Source: experimental mass spectrometry
+  and binding assays.
+- **69 DECOY candidates**: same peptides with middle positions (P3-P8) shuffled,
+  anchors (P1, P2, P9) preserved. Standard negative controls used in
+  computational immunology benchmarks.
+
+The `ic50_nm` column contains the measured binding affinity for REAL candidates
+(empty for DECOYs). Lower IC50 = stronger binder = better candidate.
+
+Two analyses are possible with this dataset:
+
+1. **Spearman correlation** (REAL only): does your pipeline ranking correlate
+   with the experimentally measured IC50?
+   ```python
+   from scipy.stats import spearmanr
+   rho, pvalue = spearmanr(pipeline_scores, ic50_values)
+   ```
+
+2. **Classification REAL vs DECOY**: can your model distinguish real neoantigen
+   candidates from shuffled decoys? Train on patient_one, predict on patient_real,
+   measure AUC.
+
 ### Labels
 
 Each candidate has a label in the `note` column:
