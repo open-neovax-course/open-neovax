@@ -48,6 +48,7 @@ _SELF_PEPTIDES = None
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
+
 def _load_self_peptides():
     global _SELF_PEPTIDES
     if _SELF_PEPTIDES is not None:
@@ -60,10 +61,10 @@ def _load_self_peptides():
         _SELF_PEPTIDES = set(line.strip() for line in f)
     return _SELF_PEPTIDES
 
+
 def _hamming(a, b) -> int:
-    """ Compute the number of differences in sequences
-    """
-    return(sum (c1!=c2) for c1, c2 in zip(a,b))
+    """Compute the number of differences in sequences"""
+    return (sum(c1 != c2) for c1, c2 in zip(a, b))
 
 
 # ══════════════════════════════════════════════════════════════════════
