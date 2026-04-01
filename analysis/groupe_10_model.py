@@ -51,6 +51,7 @@ RANDOM_STATE = 42
 # DATA
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def load_scores(path: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
@@ -64,10 +65,9 @@ def preprocess_features(df: pd.DataFrame) -> pd.DataFrame:
         )
 
     if {"C_hla_delta_binding", "A_hybrid_complexity"} <= set(df.columns):
-        df["C_binding_x_complexity"] = (
-            df["C_hla_delta_binding"].astype(float)
-            * df["A_hybrid_complexity"].astype(float)
-        )
+        df["C_binding_x_complexity"] = df["C_hla_delta_binding"].astype(float) * df[
+            "A_hybrid_complexity"
+        ].astype(float)
 
     return df
 
@@ -99,28 +99,39 @@ def prepare_features(df: pd.DataFrame, label_map: dict):
 # MODELS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def build_binary_models() -> dict:
     """Two binary classifiers for cross-validation comparison."""
     return {
-        "logistic_regression": Pipeline([
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-            ("model", LogisticRegression(
-                max_iter=2000,
-                C=0.5,
-                random_state=RANDOM_STATE,
-            )),
-        ]),
-        "random_forest": Pipeline([
-            ("imputer", SimpleImputer(strategy="median")),
-            ("model", RandomForestClassifier(
-                n_estimators=300,
-                max_depth=3,
-                min_samples_leaf=5,
-                class_weight={0: 1, 1: 3},
-                random_state=RANDOM_STATE,
-            )),
-        ]),
+        "logistic_regression": Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                (
+                    "model",
+                    LogisticRegression(
+                        max_iter=2000,
+                        C=0.5,
+                        random_state=RANDOM_STATE,
+                    ),
+                ),
+            ]
+        ),
+        "random_forest": Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                (
+                    "model",
+                    RandomForestClassifier(
+                        n_estimators=300,
+                        max_depth=3,
+                        min_samples_leaf=5,
+                        class_weight={0: 1, 1: 3},
+                        random_state=RANDOM_STATE,
+                    ),
+                ),
+            ]
+        ),
     }
 
 
@@ -130,20 +141,26 @@ def build_ordinal_model() -> Pipeline:
     Ranking uses expected ordinal value: sum(class * P(class)).
     This is the PRIMARY ranking model — it distinguishes GOLD from GOOD.
     """
-    return Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("model", RandomForestClassifier(
-            n_estimators=500,
-            max_depth=4,
-            min_samples_leaf=3,
-            random_state=RANDOM_STATE,
-        )),
-    ])
+    return Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                RandomForestClassifier(
+                    n_estimators=500,
+                    max_depth=4,
+                    min_samples_leaf=3,
+                    random_state=RANDOM_STATE,
+                ),
+            ),
+        ]
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # EVALUATION
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def evaluate_models(models: dict, X: pd.DataFrame, y: pd.Series) -> dict:
     """Cross-validate binary models and print accuracy."""
@@ -161,8 +178,9 @@ def evaluate_models(models: dict, X: pd.DataFrame, y: pd.Series) -> dict:
     return results
 
 
-def fit_best_binary_model(models: dict, cv_results: dict,
-                           X: pd.DataFrame, y: pd.Series):
+def fit_best_binary_model(
+    models: dict, cv_results: dict, X: pd.DataFrame, y: pd.Series
+):
     best_name = max(cv_results, key=cv_results.get)
     best_model = models[best_name]
     best_model.fit(X, y)
@@ -174,8 +192,10 @@ def fit_best_binary_model(models: dict, cv_results: dict,
 # FEATURE IMPORTANCE
 # ══════════════════════════════════════════════════════════════════════════════
 
-def print_feature_importance(model_name: str, model: Pipeline,
-                              feature_names) -> pd.Series:
+
+def print_feature_importance(
+    model_name: str, model: Pipeline, feature_names
+) -> pd.Series:
     print("FEATURE IMPORTANCE:")
 
     if model_name == "logistic_regression":
@@ -196,8 +216,9 @@ def print_feature_importance(model_name: str, model: Pipeline,
     return importance
 
 
-def evaluate_training_predictions(model: Pipeline, X: pd.DataFrame,
-                                   y: pd.Series) -> None:
+def evaluate_training_predictions(
+    model: Pipeline, X: pd.DataFrame, y: pd.Series
+) -> None:
     preds = model.predict(X)
     print("\nTRAINING SET REPORT (binary model):")
     print(classification_report(y, preds, digits=3))
@@ -207,9 +228,10 @@ def evaluate_training_predictions(model: Pipeline, X: pd.DataFrame,
 # RANKING
 # ══════════════════════════════════════════════════════════════════════════════
 
-def rank_patient_zero(ordinal_model: Pipeline,
-                      binary_model: Pipeline,
-                      zero_df: pd.DataFrame) -> pd.DataFrame:
+
+def rank_patient_zero(
+    ordinal_model: Pipeline, binary_model: Pipeline, zero_df: pd.DataFrame
+) -> pd.DataFrame:
     """
     Primary score  : ordinal expected value (distinguishes GOLD from GOOD).
     Secondary score: binary probability (good vs bad).
@@ -237,9 +259,9 @@ def rank_patient_zero(ordinal_model: Pipeline,
 
     ranking = meta_zero.copy()
     ranking["ordinal"] = ordinal_score.round(3)
-    ranking["binary"]  = binary_proba.round(3)
-    ranking["domain"]  = np.round(domain_score, 3)
-    ranking["score"]   = blended.round(3)
+    ranking["binary"] = binary_proba.round(3)
+    ranking["domain"] = np.round(domain_score, 3)
+    ranking["score"] = blended.round(3)
     ranking = ranking.sort_values("score", ascending=False).reset_index(drop=True)
     ranking.index += 1
 
@@ -262,7 +284,13 @@ def rank_patient_zero(ordinal_model: Pipeline,
             print("OK Objective achieved: CAND_01 (GOLD) is ranked #1!")
         else:
             print(f"!! CAND_01 at #{cand01_rank} -- top 8 scores for debugging:")
-            print(ranking[["candidate_id", "label", "ordinal", "binary", "domain", "score"]].head(8).to_string())
+            print(
+                ranking[
+                    ["candidate_id", "label", "ordinal", "binary", "domain", "score"]
+                ]
+                .head(8)
+                .to_string()
+            )
 
     return ranking
 
@@ -271,8 +299,10 @@ def rank_patient_zero(ordinal_model: Pipeline,
 # BIOLOGICAL INTERPRETATION
 # ══════════════════════════════════════════════════════════════════════════════
 
-def print_biological_interpretation(model_name: str, model: Pipeline,
-                                     importance: pd.Series) -> None:
+
+def print_biological_interpretation(
+    model_name: str, model: Pipeline, importance: pd.Series
+) -> None:
     print("\nBIOLOGICAL INTERPRETATION:")
     top3 = importance.head(3).index.tolist()
 
@@ -284,10 +314,22 @@ def print_biological_interpretation(model_name: str, model: Pipeline,
     dominant = max(dept_score, key=dept_score.get)
 
     dept_desc = {
-        "A": "physicochemical properties - TCR recognition depends on peptide biochemistry.",
-        "B": "antigen processing (proteasome/TAP/ERAP) - presentation requires intracellular processing.",
-        "C": "HLA binding (anchor positions, delta binding) - MHC-I presentation is the primary bottleneck.",
-        "D": "self-similarity - avoiding self-peptides is critical for safety and immunogenicity.",
+        "A": (
+            "physicochemical properties"
+            " - TCR recognition depends on peptide biochemistry."
+        ),
+        "B": (
+            "antigen processing (proteasome/TAP/ERAP)"
+            " - presentation requires intracellular processing."
+        ),
+        "C": (
+            "HLA binding (anchor positions, delta binding)"
+            " - MHC-I presentation is the primary bottleneck."
+        ),
+        "D": (
+            "self-similarity"
+            " - avoiding self-peptides is critical for safety and immunogenicity."
+        ),
     }
 
     print(f"  Top features : {', '.join(top3)}")
@@ -296,13 +338,19 @@ def print_biological_interpretation(model_name: str, model: Pipeline,
 
     if dominant == "C" or any("C_" in f for f in top3):
         print("  -> HLA binding features dominate: MHC-I anchor constraints are the")
-        print("     primary filter. A peptide that cannot bind HLA cannot be presented,")
+        print(
+            "     primary filter. A peptide that cannot bind HLA cannot be presented,"
+        )
         print("     regardless of other properties.")
     if any("A_" in f for f in top3):
         print("  -> Physicochemical features are predictive: TCR contact potential and")
-        print("     hydrophobicity shape both immunogenicity and cross-reactivity risk.")
+        print(
+            "     hydrophobicity shape both immunogenicity and cross-reactivity risk."
+        )
     if any("D_" in f for f in top3):
-        print("  -> Self-similarity features matter: low self-similarity reduces central")
+        print(
+            "  -> Self-similarity features matter: low self-similarity reduces central"
+        )
         print("     tolerance and increases the chance of a strong immune response.")
 
 
@@ -310,20 +358,22 @@ def print_biological_interpretation(model_name: str, model: Pipeline,
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def main() -> None:
-    patient_one  = load_scores("analysis/scores_patient_one.csv")
+    patient_one = load_scores("analysis/scores_patient_one.csv")
     patient_zero = load_scores("analysis/scores_patient_zero.csv")
 
-    patient_one  = preprocess_features(patient_one)
+    patient_one = preprocess_features(patient_one)
     patient_zero = preprocess_features(patient_zero)
     train_df = pd.concat([patient_one, patient_zero], ignore_index=True)
 
     # ── Binary models: cross-validation comparison ─────────────────────────────
     X_bin, y_bin, _ = prepare_features(train_df, BINARY_MAP)
-    binary_models    = build_binary_models()
-    cv_results       = evaluate_models(binary_models, X_bin, y_bin)
-    best_name, best_binary = fit_best_binary_model(binary_models, cv_results,
-                                                    X_bin, y_bin)
+    binary_models = build_binary_models()
+    cv_results = evaluate_models(binary_models, X_bin, y_bin)
+    best_name, best_binary = fit_best_binary_model(
+        binary_models, cv_results, X_bin, y_bin
+    )
 
     importance = print_feature_importance(best_name, best_binary, X_bin.columns)
     evaluate_training_predictions(best_binary, X_bin, y_bin)
@@ -333,7 +383,8 @@ def main() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         ordinal_model.fit(X_ord, y_ord)
-    print("Ordinal model trained on 0-4 labels (GOLD=4, GOOD=3, NEUTRAL=2, MEDIOCRE=1, BAD/TRAP=0)\n")
+    print("Ordinal model trained on 0-4 labels")
+    print("(GOLD=4, GOOD=3, NEUTRAL=2, MEDIOCRE=1, BAD/TRAP=0)\n")
 
     rank_patient_zero(ordinal_model, best_binary, patient_zero)
     print_biological_interpretation(best_name, best_binary, importance)
