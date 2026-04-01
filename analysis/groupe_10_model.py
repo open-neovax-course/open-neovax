@@ -359,7 +359,7 @@ def rank_patient_real(
 
     auc = roc_auc_score(y_real, blended)
 
-    print(f"\nENRICHMENT METRICS (patient_real):")
+    print("\nENRICHMENT METRICS (patient_real):")
     print(f"  AUC-ROC              : {auc:.3f}  (random = 0.500)")
     print(
         f"  REAL in top 10       : {top10_real}  "
@@ -476,7 +476,9 @@ def generate_shap_analysis(
     # ── Summary plot ─────────────────────────────────────────────────────────
     sv_train = explainer.shap_values(X_train_imp)
     # shap_values returns list[array(n, f)] for multi-class RF
-    sv_gold = sv_train[gold_idx] if isinstance(sv_train, list) else sv_train[:, :, gold_idx]
+    sv_gold = (
+        sv_train[gold_idx] if isinstance(sv_train, list) else sv_train[:, :, gold_idx]
+    )
 
     plt.figure(figsize=(10, 6))
     shap.summary_plot(sv_gold, X_train_imp, show=False)
@@ -492,7 +494,7 @@ def generate_shap_analysis(
 
     cand_ids = meta_zero["candidate_id"].tolist()
     pairs = [
-        ("top",    "CAND_01", 0),
+        ("top", "CAND_01", 0),
         ("bottom", "CAND_12", len(cand_ids) - 1),
     ]
 
@@ -529,7 +531,9 @@ def generate_shap_analysis(
 
     # ── Brief interpretation ──────────────────────────────────────────────────
     mean_abs = np.abs(sv_gold).mean(axis=0)
-    feat_imp = pd.Series(mean_abs, index=X_train_imp.columns).sort_values(ascending=False)
+    feat_imp = pd.Series(mean_abs, index=X_train_imp.columns).sort_values(
+        ascending=False
+    )
 
     print("\nSHAP INTERPRETATION (GOLD class):")
     print(f"  Top driver    : {feat_imp.index[0]} — pushes candidates toward GOLD")

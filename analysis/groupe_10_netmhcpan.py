@@ -25,8 +25,8 @@ import warnings
 import numpy as np
 import pandas as pd
 from scipy import stats
-from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -37,31 +37,41 @@ from sklearn.pipeline import Pipeline
 # ══════════════════════════════════════════════════════════════════════════════
 
 NETMHCPAN = {
-    "CAND_01": ("SLMAFTIAV",  0.049,  0.008,     2.60, "SB"),
-    "CAND_02": ("VLMSFYLAV",  0.213,  0.021,     4.23, "SB"),
-    "CAND_03": ("SMYDPAKAV",  0.097,  0.826,    68.90, "SB"),
-    "CAND_04": ("ALNSYTIRV",  0.023,  0.134,    10.22, "SB"),
-    "CAND_05": ("GLAFQYPEL",  0.188,  0.504,    35.54, "SB"),
-    "CAND_06": ("KLTDFINAV",  0.006,  0.014,     3.70, "SB"),
-    "CAND_07": ("YVDEHGTKL",  0.064,  1.689,   203.87, "SB"),
-    "CAND_08": ("KADSGTFRL",  1.164,  6.262,  2313.80, "WB"),
-    "CAND_09": ("FTQEYGNAL",  1.772,  3.686,   832.00, "WB"),
-    "CAND_10": ("YLNRQFGAV",  0.865,  0.450,    30.82, "WB"),
-    "CAND_11": ("ILVMILMVL",  3.149,  2.715,   470.66,  "--"),
-    "CAND_12": ("DDKREKDRK", 95.000, 98.375, 48673.57,  "--"),
-    "CAND_13": ("ALGTFINQL",  0.107,  0.880,    75.08, "SB"),
-    "CAND_14": ("SLNRTFRLV",  1.334,  2.134,   308.02, "WB"),
-    "CAND_15": ("GLTDAFNQP",  4.955, 13.368,  8658.18,  "--"),
+    "CAND_01": ("SLMAFTIAV", 0.049, 0.008, 2.60, "SB"),
+    "CAND_02": ("VLMSFYLAV", 0.213, 0.021, 4.23, "SB"),
+    "CAND_03": ("SMYDPAKAV", 0.097, 0.826, 68.90, "SB"),
+    "CAND_04": ("ALNSYTIRV", 0.023, 0.134, 10.22, "SB"),
+    "CAND_05": ("GLAFQYPEL", 0.188, 0.504, 35.54, "SB"),
+    "CAND_06": ("KLTDFINAV", 0.006, 0.014, 3.70, "SB"),
+    "CAND_07": ("YVDEHGTKL", 0.064, 1.689, 203.87, "SB"),
+    "CAND_08": ("KADSGTFRL", 1.164, 6.262, 2313.80, "WB"),
+    "CAND_09": ("FTQEYGNAL", 1.772, 3.686, 832.00, "WB"),
+    "CAND_10": ("YLNRQFGAV", 0.865, 0.450, 30.82, "WB"),
+    "CAND_11": ("ILVMILMVL", 3.149, 2.715, 470.66, "--"),
+    "CAND_12": ("DDKREKDRK", 95.000, 98.375, 48673.57, "--"),
+    "CAND_13": ("ALGTFINQL", 0.107, 0.880, 75.08, "SB"),
+    "CAND_14": ("SLNRTFRLV", 1.334, 2.134, 308.02, "WB"),
+    "CAND_15": ("GLTDAFNQP", 4.955, 13.368, 8658.18, "--"),
     # CAND_16: ALXDF*NQV --skipped, non-standard residues (X, *)
-    "CAND_17": ("FATEDHGKL",  8.408, 20.861, 15745.71,  "--"),
-    "CAND_18": ("GLWDPFNAV",  0.017,  0.056,     6.05, "SB"),
+    "CAND_17": ("FATEDHGKL", 8.408, 20.861, 15745.71, "--"),
+    "CAND_18": ("GLWDPFNAV", 0.017, 0.056, 6.05, "SB"),
 }
 
 ORDINAL_MAP = {
-    "GOLD": 4, "GOOD": 3, "NEUTRAL": 2, "MEDIOCRE": 1, "BAD": 0, "TRAP": 0,
+    "GOLD": 4,
+    "GOOD": 3,
+    "NEUTRAL": 2,
+    "MEDIOCRE": 1,
+    "BAD": 0,
+    "TRAP": 0,
 }
 BINARY_MAP = {
-    "GOLD": 1, "GOOD": 1, "NEUTRAL": 0, "MEDIOCRE": 0, "BAD": 0, "TRAP": 0,
+    "GOLD": 1,
+    "GOOD": 1,
+    "NEUTRAL": 0,
+    "MEDIOCRE": 0,
+    "BAD": 0,
+    "TRAP": 0,
 }
 RANDOM_STATE = 42
 
@@ -70,6 +80,7 @@ RANDOM_STATE = 42
 # PIPELINE (minimal re-implementation to get our blended score)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def _preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     if "D_mutation_in_window" in df.columns:
@@ -77,10 +88,9 @@ def _preprocess(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: 1.0 if float(x) > -100.0 else -1.0
         )
     if {"C_hla_delta_binding", "A_hybrid_complexity"} <= set(df.columns):
-        df["C_binding_x_complexity"] = (
-            df["C_hla_delta_binding"].astype(float)
-            * df["A_hybrid_complexity"].astype(float)
-        )
+        df["C_binding_x_complexity"] = df["C_hla_delta_binding"].astype(float) * df[
+            "A_hybrid_complexity"
+        ].astype(float)
     return df
 
 
@@ -92,23 +102,36 @@ def _features(df: pd.DataFrame, label_map: dict):
 
 
 def _build_ordinal() -> Pipeline:
-    return Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("model", RandomForestClassifier(
-            n_estimators=500, max_depth=4, min_samples_leaf=3,
-            random_state=RANDOM_STATE,
-        )),
-    ])
+    return Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                RandomForestClassifier(
+                    n_estimators=500,
+                    max_depth=4,
+                    min_samples_leaf=3,
+                    random_state=RANDOM_STATE,
+                ),
+            ),
+        ]
+    )
 
 
 def _build_binary() -> Pipeline:
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
-    return Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-        ("model", LogisticRegression(max_iter=2000, C=0.5, random_state=RANDOM_STATE)),
-    ])
+
+    return Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            (
+                "model",
+                LogisticRegression(max_iter=2000, C=0.5, random_state=RANDOM_STATE),
+            ),
+        ]
+    )
 
 
 def _blended_score(ordinal_model, binary_model, X: pd.DataFrame) -> np.ndarray:
@@ -132,23 +155,28 @@ def _blended_score(ordinal_model, binary_model, X: pd.DataFrame) -> np.ndarray:
 # BENCHMARK
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_comparison_table(our_scores: pd.Series, label_series: pd.Series) -> pd.DataFrame:
+
+def build_comparison_table(
+    our_scores: pd.Series, label_series: pd.Series
+) -> pd.DataFrame:
     """Merge our blended scores with NetMHCpan results into one DataFrame."""
     rows = []
     for cand_id, score in our_scores.items():
         if cand_id not in NETMHCPAN:
             continue
         peptide, rank_el, rank_ba, aff_nm, bind = NETMHCPAN[cand_id]
-        rows.append({
-            "candidate_id": cand_id,
-            "peptide": peptide,
-            "label": label_series.get(cand_id, "?"),
-            "our_score": round(score, 3),
-            "netmhc_rank_el": rank_el,
-            "netmhc_rank_ba": rank_ba,
-            "netmhc_aff_nm": aff_nm,
-            "netmhc_bind": bind,
-        })
+        rows.append(
+            {
+                "candidate_id": cand_id,
+                "peptide": peptide,
+                "label": label_series.get(cand_id, "?"),
+                "our_score": round(score, 3),
+                "netmhc_rank_el": rank_el,
+                "netmhc_rank_ba": rank_ba,
+                "netmhc_aff_nm": aff_nm,
+                "netmhc_bind": bind,
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -163,9 +191,11 @@ def build_comparison_table(our_scores: pd.Series, label_series: pd.Series) -> pd
 
 def print_comparative_table(df: pd.DataFrame) -> None:
     print("\nCOMPARATIVE RANKING TABLE (patient_zero, 17 peptides --CAND_16 excluded)")
-    print(f"{'Cand':8s}  {'Label':8s}  "
-          f"{'Our':>4s}  {'NMHC':>4s}  {'Diff':>4s}  "
-          f"{'Score':>6s}  {'%EL':>7s}  {'Aff(nM)':>10s}  {'Bind':4s}")
+    print(
+        f"{'Cand':8s}  {'Label':8s}  "
+        f"{'Our':>4s}  {'NMHC':>4s}  {'Diff':>4s}  "
+        f"{'Score':>6s}  {'%EL':>7s}  {'Aff(nM)':>10s}  {'Bind':4s}"
+    )
     print("-" * 72)
     for _, row in df.iterrows():
         diff_marker = " !!" if row["rank_diff"] >= 5 else ""
@@ -192,7 +222,8 @@ def compute_correlation(df: pd.DataFrame) -> None:
     if rho > 0.6:
         print("  -> Strong agreement: our pipeline captures real HLA binding biology.")
     elif rho > 0.3:
-        print("  -> Moderate agreement: pipeline captures major trends but misses detail.")
+        print("  -> Moderate agreement: pipeline captures major trends but misses")
+        print("     detail.")
     elif rho > 0:
         print("  -> Weak agreement: our simple modules partially reflect HLA binding.")
     else:
@@ -224,10 +255,10 @@ def analyse_disagreements(df: pd.DataFrame) -> None:
         cand = row["candidate_id"]
         if cand == "CAND_07":
             print("    Interpretation: YVDEHGTKL --NetMHCpan calls it SB by EL score")
-            print("    (0.064 %) but BA affinity is weak (204 nM). Our model down-ranks")
-            print("    it because the domain score (HLA-delta × complexity) is low.")
+            print("    (0.064 %) but BA affinity weak (204 nM). Our model down-ranks")
+            print("    it because the domain score (HLA-delta x complexity) is low.")
             print("    EL vs BA divergence: EL captures eluted-ligand probability,")
-            print("    BA captures binding affinity; they can disagree on borderline cases.")
+            print("    BA captures binding affinity; they can disagree on borderlines.")
         elif cand == "CAND_06":
             print("    Interpretation: KLTDFINAV --NetMHCpan's top binder (%EL=0.006,")
             print("    Aff=3.7 nM). Our model ranks it lower because our blended score")
@@ -235,7 +266,8 @@ def analyse_disagreements(df: pd.DataFrame) -> None:
             print("    which don't exclusively track raw binding affinity.")
         elif cand == "CAND_11":
             print("    Interpretation: ILVMILMVL --hydrophobic, no charged residues.")
-            print("    NetMHCpan gives weak binding (%EL=3.1), our model ranks it lower.")
+            print("    NetMHCpan gives weak binding (%EL=3.1); our model also ranks")
+            print("    it lower.")
             print("    This is a TRAP candidate; our model correctly identifies it as")
             print("    bad due to low self-dissimilarity (could be a self-peptide).")
         elif cand == "CAND_13":
@@ -245,15 +277,16 @@ def analyse_disagreements(df: pd.DataFrame) -> None:
         else:
             if row["our_rank"] < row["netmhc_rank"]:
                 print("    Our model weights non-binding features (TCR contact, self-")
-                print("    similarity) that NetMHCpan ignores, pushing this candidate up.")
+                print("    similarity) that NetMHCpan ignores, pushing this up.")
             else:
-                print("    NetMHCpan detects strong HLA binding that our proxy features")
-                print("    (PSSM-based) miss --a known limitation of our simplified scorer.")
+                print("    NetMHCpan detects HLA binding our proxy features (PSSM)")
+                print("    miss --known limitation of our simplified scorer.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def main() -> None:
     patient_one = _preprocess(pd.read_csv("analysis/scores_patient_one.csv"))
