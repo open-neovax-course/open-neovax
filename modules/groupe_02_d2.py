@@ -103,13 +103,13 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     if not same_len:
         return (SCORE_NAME, 0.0)
     min_dist = min(_hamming(pep, p) for p in same_len)
-    if (min_dist == 0):
+    if min_dist == 0:
         score = -10
-    elif (min_dist == 1):
+    elif min_dist == 1:
         score = -5
-    elif (min_dist == 2):
+    elif min_dist == 2:
         score = -3
     else:
-        score = -1/min_dist
-    
+        score = -1 / min_dist
+
     return (SCORE_NAME, float(score))
