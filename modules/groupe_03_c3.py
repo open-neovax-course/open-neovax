@@ -32,7 +32,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "C_delta_binding"
+SCORE_NAME = "C_anchoring_secondary"
 
 
 # ══════════════════════════════════════════════════════════════════════
