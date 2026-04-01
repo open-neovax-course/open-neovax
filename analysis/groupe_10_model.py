@@ -238,7 +238,7 @@ def rank_patient_zero(
     Domain score   : C_binding_x_complexity — HLA-delta * peptide-complexity.
                      Captures the ideal neoepitope: large HLA binding improvement
                      combined with a diverse, TCR-recognisable peptide.
-    Blend: 50% ordinal + 25% binary + 25% domain.
+    Blend: 40% ordinal + 20% binary + 40% domain.
     """
     X_zero, _, meta_zero = prepare_features(zero_df, BINARY_MAP)
 
@@ -255,7 +255,7 @@ def rank_patient_zero(
     else:
         domain_score = np.zeros(len(ordinal_score))
 
-    blended = 0.50 * ordinal_score + 0.25 * binary_proba + 0.25 * domain_score
+    blended = 0.40 * ordinal_score + 0.20 * binary_proba + 0.40 * domain_score
 
     ranking = meta_zero.copy()
     ranking["ordinal"] = ordinal_score.round(3)
@@ -365,10 +365,9 @@ def main() -> None:
 
     patient_one = preprocess_features(patient_one)
     patient_zero = preprocess_features(patient_zero)
-    train_df = pd.concat([patient_one, patient_zero], ignore_index=True)
 
     # ── Binary models: cross-validation comparison ─────────────────────────────
-    X_bin, y_bin, _ = prepare_features(train_df, BINARY_MAP)
+    X_bin, y_bin, _ = prepare_features(patient_one, BINARY_MAP)
     binary_models = build_binary_models()
     cv_results = evaluate_models(binary_models, X_bin, y_bin)
     best_name, best_binary = fit_best_binary_model(
@@ -378,7 +377,7 @@ def main() -> None:
     importance = print_feature_importance(best_name, best_binary, X_bin.columns)
     evaluate_training_predictions(best_binary, X_bin, y_bin)
 
-    X_ord, y_ord, _ = prepare_features(train_df, ORDINAL_MAP)
+    X_ord, y_ord, _ = prepare_features(patient_one, ORDINAL_MAP)
     ordinal_model = build_ordinal_model()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
