@@ -14,12 +14,16 @@ from __future__ import annotations
 
 import warnings
 
+import matplotlib
 import numpy as np
 import pandas as pd
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -43,6 +47,9 @@ ORDINAL_MAP = {
     "BAD": 0,
     "TRAP": 0,
 }
+
+# REAL experimental data — binary: validated neoepitope vs shuffled decoy
+REAL_MAP = {"REAL": 1, "DECOY": 0}
 
 RANDOM_STATE = 42
 
@@ -295,6 +302,81 @@ def rank_patient_zero(
     return ranking
 
 
+def rank_patient_real(
+    ordinal_model: Pipeline, binary_model: Pipeline, real_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Apply trained models to real experimental data (patient_real.csv).
+    Labels: REAL (experimentally validated neoepitopes) vs DECOY (shuffled controls).
+    Reports enrichment metrics: AUC-ROC, REAL counts in top-N, mean REAL rank.
+    """
+    X_real, y_real, meta_real = prepare_features(real_df, REAL_MAP)
+
+    ord_classes = ordinal_model.classes_
+    ord_proba = ordinal_model.predict_proba(X_real)
+    ordinal_score = (ord_proba * ord_classes).sum(axis=1) / ord_classes.max()
+
+    binary_proba = binary_model.predict_proba(X_real)[:, 1]
+
+    if "C_binding_x_complexity" in X_real.columns:
+        dxc = X_real["C_binding_x_complexity"].values.astype(float)
+        dxc_max = np.abs(dxc).max()
+        domain_score = dxc / dxc_max if dxc_max > 0 else np.zeros(len(dxc))
+    else:
+        domain_score = np.zeros(len(ordinal_score))
+
+    blended = 0.40 * ordinal_score + 0.20 * binary_proba + 0.40 * domain_score
+
+    ranking = meta_real.copy()
+    ranking["ordinal"] = ordinal_score.round(3)
+    ranking["binary"] = binary_proba.round(3)
+    ranking["domain"] = np.round(domain_score, 3)
+    ranking["score"] = blended.round(3)
+    ranking = ranking.sort_values("score", ascending=False).reset_index(drop=True)
+    ranking.index += 1
+
+    print("\nFINAL RANKING (patient_real — experimental data):")
+    for idx, row in ranking.iterrows():
+        marker = " [REAL]" if row["label"] == "REAL" else ""
+        print(
+            f"  {idx:3d}. {row['candidate_id']:10s}  "
+            f"score={row['score']:.3f}  "
+            f"ord={row['ordinal']:.3f}  "
+            f"bin={row['binary']:.3f}  "
+            f"dom={row['domain']:.3f}  "
+            f"{row['label']}{marker}"
+        )
+
+    n_total = len(ranking)
+    n_real = int((ranking["label"] == "REAL").sum())
+    random_baseline_10 = 10 * n_real / n_total
+    random_baseline_20 = 20 * n_real / n_total
+    top10_real = int((ranking.head(10)["label"] == "REAL").sum())
+    top20_real = int((ranking.head(20)["label"] == "REAL").sum())
+    real_ranks = ranking.index[ranking["label"] == "REAL"].tolist()
+    mean_rank = np.mean(real_ranks)
+    random_mean_rank = (n_total + 1) / 2
+
+    auc = roc_auc_score(y_real, blended)
+
+    print(f"\nENRICHMENT METRICS (patient_real):")
+    print(f"  AUC-ROC              : {auc:.3f}  (random = 0.500)")
+    print(
+        f"  REAL in top 10       : {top10_real}  "
+        f"(random baseline = {random_baseline_10:.1f})"
+    )
+    print(
+        f"  REAL in top 20       : {top20_real}  "
+        f"(random baseline = {random_baseline_20:.1f})"
+    )
+    print(
+        f"  Mean rank of REALs   : {mean_rank:.1f}  "
+        f"(random baseline = {random_mean_rank:.1f})"
+    )
+
+    return ranking
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # BIOLOGICAL INTERPRETATION
 # ══════════════════════════════════════════════════════════════════════════════
@@ -355,6 +437,114 @@ def print_biological_interpretation(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SHAP EXPLAINABILITY  (issue #48)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def generate_shap_analysis(
+    ordinal_model: Pipeline,
+    X_train: pd.DataFrame,
+    patient_zero_df: pd.DataFrame,
+) -> None:
+    """
+    SHAP explainability for the ordinal RandomForest (issue #48).
+
+    Saves:
+      analysis/shap_summary.png          — global feature impact on GOLD class
+      analysis/shap_waterfall_top.png    — CAND_01 (highest-scored, GOLD)
+      analysis/shap_waterfall_bottom.png — CAND_12 (lowest-scored, BAD)
+
+    Summary plot: which features push candidates toward GOLD (ordinal class 4).
+    Waterfall plots: per-feature contribution for individual candidates,
+    showing exactly why CAND_01 ranks first and CAND_12 ranks last.
+    """
+    import shap
+
+    imputer = ordinal_model.named_steps["imputer"]
+    rf = ordinal_model.named_steps["model"]
+
+    X_train_imp = pd.DataFrame(imputer.transform(X_train), columns=X_train.columns)
+
+    X_zero, _, meta_zero = prepare_features(patient_zero_df, BINARY_MAP)
+    X_zero_imp = pd.DataFrame(imputer.transform(X_zero), columns=X_zero.columns)
+
+    explainer = shap.TreeExplainer(rf)
+
+    # GOLD class index (ordinal value 4)
+    gold_idx = list(rf.classes_).index(4) if 4 in rf.classes_ else len(rf.classes_) - 1
+
+    # ── Summary plot ─────────────────────────────────────────────────────────
+    sv_train = explainer.shap_values(X_train_imp)
+    # shap_values returns list[array(n, f)] for multi-class RF
+    sv_gold = sv_train[gold_idx] if isinstance(sv_train, list) else sv_train[:, :, gold_idx]
+
+    plt.figure(figsize=(10, 6))
+    shap.summary_plot(sv_gold, X_train_imp, show=False)
+    plt.title("SHAP Summary — feature impact on P(GOLD) [ordinal class 4]")
+    plt.tight_layout()
+    plt.savefig("analysis/shap_summary.png", bbox_inches="tight", dpi=150)
+    plt.close()
+    print("Saved: analysis/shap_summary.png")
+
+    # ── Waterfall plots ───────────────────────────────────────────────────────
+    # explainer(X) returns Explanation with .values shape (n, f, n_classes)
+    exp_zero = explainer(X_zero_imp)
+
+    cand_ids = meta_zero["candidate_id"].tolist()
+    pairs = [
+        ("top",    "CAND_01", 0),
+        ("bottom", "CAND_12", len(cand_ids) - 1),
+    ]
+
+    for file_label, cand_name, fallback_idx in pairs:
+        idx = cand_ids.index(cand_name) if cand_name in cand_ids else fallback_idx
+        actual_name = cand_ids[idx]
+
+        if exp_zero.values.ndim == 3:
+            sv_i = exp_zero.values[idx, :, gold_idx]
+            bv_i = float(exp_zero.base_values[idx, gold_idx])
+        else:
+            sv_i = exp_zero.values[idx]
+            bv_i = float(
+                exp_zero.base_values[idx]
+                if np.ndim(exp_zero.base_values) == 1
+                else exp_zero.base_values[idx, 0]
+            )
+
+        shap_exp = shap.Explanation(
+            values=sv_i,
+            base_values=bv_i,
+            data=X_zero_imp.iloc[idx].values,
+            feature_names=X_zero_imp.columns.tolist(),
+        )
+
+        plt.figure(figsize=(10, 5))
+        shap.plots.waterfall(shap_exp, show=False)
+        plt.title(f"SHAP Waterfall — {actual_name} ({file_label}-ranked candidate)")
+        plt.tight_layout()
+        path = f"analysis/shap_waterfall_{file_label}.png"
+        plt.savefig(path, bbox_inches="tight", dpi=150)
+        plt.close()
+        print(f"Saved: {path}")
+
+    # ── Brief interpretation ──────────────────────────────────────────────────
+    mean_abs = np.abs(sv_gold).mean(axis=0)
+    feat_imp = pd.Series(mean_abs, index=X_train_imp.columns).sort_values(ascending=False)
+
+    print("\nSHAP INTERPRETATION (GOLD class):")
+    print(f"  Top driver    : {feat_imp.index[0]} — pushes candidates toward GOLD")
+    print(f"  Second driver : {feat_imp.index[1]}")
+    print(f"  Third driver  : {feat_imp.index[2]}")
+    top3 = feat_imp.head(3).index.tolist()
+    if any("C_" in f for f in top3):
+        print("  -> HLA binding (C-dept) is the dominant GOLD predictor: anchor")
+        print("     residues at P2/P9 are the primary gate for MHC-I presentation.")
+    if any("A_" in f for f in top3):
+        print("  -> Physicochemical properties (A-dept) also drive GOLD status:")
+        print("     TCR-contact diversity distinguishes strong from weak neoepitopes.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -362,9 +552,11 @@ def print_biological_interpretation(
 def main() -> None:
     patient_one = load_scores("analysis/scores_patient_one.csv")
     patient_zero = load_scores("analysis/scores_patient_zero.csv")
+    patient_real = load_scores("analysis/scores_patient_real.csv")
 
     patient_one = preprocess_features(patient_one)
     patient_zero = preprocess_features(patient_zero)
+    patient_real = preprocess_features(patient_real)
 
     # ── Binary models: cross-validation comparison ─────────────────────────────
     X_bin, y_bin, _ = prepare_features(patient_one, BINARY_MAP)
@@ -386,7 +578,14 @@ def main() -> None:
     print("(GOLD=4, GOOD=3, NEUTRAL=2, MEDIOCRE=1, BAD/TRAP=0)\n")
 
     rank_patient_zero(ordinal_model, best_binary, patient_zero)
+    rank_patient_real(ordinal_model, best_binary, patient_real)
     print_biological_interpretation(best_name, best_binary, importance)
+
+    # ── SHAP explainability (issue #48) ────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("SHAP EXPLAINABILITY")
+    print("=" * 60)
+    generate_shap_analysis(ordinal_model, X_ord, patient_zero)
 
 
 if __name__ == "__main__":
