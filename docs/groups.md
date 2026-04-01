@@ -33,6 +33,7 @@
 | 12 | BA | Pape-Oumar | — | |
 | 13 | Essome Ndoumin | Christian | Essome12 | |
 | 13 | Talekeudjeu Goudjou | Morel | Nate380 | |
+| 14 | Rabin | Eliot | mrks2 | |
 
 ## Module assignments
 
