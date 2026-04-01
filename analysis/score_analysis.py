@@ -140,6 +140,9 @@ if __name__ == "__main__":
         print("Generating score matrix for patient_zero...")
         generate_score_matrix("patient_zero.csv")
         print()
+        print("Generating score matrix for patient_real...")
+        generate_score_matrix("patient_real.csv")
+        print()
 
     if args.train:
         train_and_evaluate()
