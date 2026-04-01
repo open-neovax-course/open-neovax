@@ -65,6 +65,7 @@ def _hamming(a, b) -> int:
     """Compute the number of differences in sequences."""
     return sum(c1 != c2 for c1, c2 in zip(a, b))
 
+
 def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
     """Example internal function.
 
