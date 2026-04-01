@@ -702,6 +702,49 @@ for i, (cid, prob, label) in enumerate(ranking, 1):
   </div>
 </div>
 
+<!-- SLIDE — Données réelles -->
+<div class="slide">
+  <h2>Données réelles : <code>patient_real.csv</code></h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:1rem;">Un nouveau jeu de données avec de <strong>vrais néo-antigènes</strong> de patients atteints de cancer (HNSCC) :</p>
+      <table style="font-size:1rem;">
+        <tr><th>Type</th><th>Nombre</th><th>Détail</th></tr>
+        <tr><td><span class="badge badge-green">REAL</span></td><td>69</td><td>Vrais couples WT/MUT, IC50 mesuré (3-48 nM)</td></tr>
+        <tr><td><span class="badge badge-red">DECOY</span></td><td>69</td><td>Positions P3-P8 mélangées, ancres préservées</td></tr>
+      </table>
+      <p class="small dim" style="margin-top:1rem;">Source : dbPepNeo2.0 (Frontiers in Immunology, 2022)</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold);">
+      <h3 style="color:var(--gold);">Deux analyses</h3>
+      <ul class="small">
+        <li><strong>Corrélation Spearman</strong> : votre ranking corrèle-t-il avec l'IC50 mesuré ? (69 REAL)</li>
+        <li><strong>Classification REAL vs DECOY</strong> : votre modèle distingue-t-il les vrais candidats des faux ? (138 total, AUC)</li>
+      </ul>
+      <p class="small" style="margin-top:1rem;">C'est le <strong>vrai test scientifique</strong> — des données que votre modèle n'a jamais vues, issues de vrais patients.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE — Extensions avancées -->
+<div class="slide">
+  <h2>Pour aller plus loin</h2>
+  <div class="cols">
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h3 style="color:var(--accent2);">SHAP — Explainabilité</h3>
+      <p class="small">Pas juste "quels modules comptent globalement" mais <strong>"pourquoi CE candidat est classé premier"</strong>.</p>
+      <p class="small" style="margin-top:0.5rem;">SHAP donne une explication par candidat : quels modules poussent le score vers le haut ou vers le bas.</p>
+      <p class="small dim" style="margin-top:0.5rem;"><code>pip install shap</code> — voir issue #48</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--accent4);">
+      <h3 style="color:var(--accent4);">NetMHCpan — Benchmark</h3>
+      <p class="small">Comparer votre pipeline avec <strong>l'état de l'art</strong> : soumettre les peptides au serveur web NetMHCpan 4.1 et comparer les rankings.</p>
+      <p class="small" style="margin-top:0.5rem;">Question clé : sur quels candidats votre pipeline et NetMHCpan sont-ils en désaccord, et pourquoi ?</p>
+      <p class="small dim" style="margin-top:0.5rem;">Voir issue #49</p>
+    </div>
+  </div>
+</div>
+
 <!-- SLIDE — Votre livrable -->
 <div class="slide">
   <h2>Votre livrable</h2>
