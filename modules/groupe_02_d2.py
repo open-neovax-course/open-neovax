@@ -38,7 +38,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
 SCORE_NAME = "D_self_approx_match"
-
+_SELF_PEPTIDES = None
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
@@ -48,6 +48,17 @@ SCORE_NAME = "D_self_approx_match"
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
+def _load_self_peptides():
+    global _SELF_PEPTIDES
+    if _SELF_PEPTIDES is not None:
+        return _SELF_PEPTIDES
+    path = DATA_DIR / "human_peptides_small.txt"
+    if not path.exists():
+        _SELF_PEPTIDES = set()
+        return _SELF_PEPTIDES
+    with open(path) as f:
+        _SELF_PEPTIDES = set(line.strip() for line in f)
+    return _SELF_PEPTIDES
 
 def _hamming(a, b) -> int:
     """ Compute the number of differences in sequences
@@ -83,11 +94,13 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-    # 1. Get the sequence to analyze
-    peptide = candidate.peptide_mut
-
-    # 2. Compute the score using your logic
-    score_value = _hamming(peptide)
-
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    pep = candidate.peptide_mut
+    if not pep:
+        return (SCORE_NAME, 0.0)
+    pep = pep.strip().upper()
+    corpus = _load_self_peptides()
+    same_len = [p for p in corpus if len(p) == len(pep)]
+    if not same_len:
+        return (SCORE_NAME, float(len(pep)))
+    min_dist = min(_hamming(pep, p) for p in same_len)
+    return (SCORE_NAME, float(min_dist))
