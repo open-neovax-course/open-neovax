@@ -63,7 +63,9 @@ def train_and_evaluate():
 
     print("\n=== CROSS VALIDATION (patient_one) ===")
     for name, model in models.items():
-        scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring="accuracy")
+        scores = cross_val_score(
+            model, X_train_scaled, y_train, cv=5, scoring="accuracy"
+        )
         print(f"{name}: mean={scores.mean():.3f}  std={scores.std():.3f}")
 
     # -------------------------
@@ -75,10 +77,9 @@ def train_and_evaluate():
     # -------------------------
     # FEATURE IMPORTANCE
     # -------------------------
-    importance_df = (
-        pd.DataFrame({"feature": X_train.columns, "importance": rf.feature_importances_})
-        .sort_values(by="importance", ascending=False)
-    )
+    importance_df = pd.DataFrame(
+        {"feature": X_train.columns, "importance": rf.feature_importances_}
+    ).sort_values(by="importance", ascending=False)
 
     print("\n=== FEATURE IMPORTANCE (top 15) ===")
     print(importance_df.head(15))
