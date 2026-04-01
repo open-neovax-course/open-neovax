@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 # ══════════════════════════════════════════════════════════════════════
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+HUMAN_PEPTIDES_PATH = DATA_DIR / "human_peptides_small.txt"
 SCORE_NAME = "D_wt_presented"
 
 
@@ -22,9 +23,15 @@ SCORE_NAME = "D_wt_presented"
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _compute_placeholder(peptide: str) -> float:
-    _ = peptide
-    return 0.0
+def _load_human_peptides(path: Path) -> set[str]:
+    """Load the human peptide corpus from a text file."""
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return {line.strip() for line in f if line.strip()}
+    except OSError:
+        return set()
+    
+HUMAN_PEPTIDES = _load_human_peptides(HUMAN_PEPTIDES_PATH)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -34,6 +41,5 @@ def _compute_placeholder(peptide: str) -> float:
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
     """Compute D5 wild-type presentation score."""
-    wt = candidate.peptide_wt
-    score_value = _compute_placeholder(wt)
-    return (SCORE_NAME, score_value)
+    _ = candidate.peptide_wt
+    return (SCORE_NAME, 0.0)
