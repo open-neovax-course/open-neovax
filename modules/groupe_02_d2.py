@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
-
+import functools
 # ──────────────────────────────────────────────────────────────────────
 # Import the Candidate type.
 # TYPE_CHECKING is False at runtime → no circular import issues.
@@ -66,28 +66,35 @@ def _hamming(a, b) -> int:
     return sum(c1 != c2 for c1, c2 in zip(a, b))
 
 
-def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
-    """Example internal function.
 
-    Replace this computation with your biological logic.
-    """
+# Chargement unique (Optimisation Performance)
+@functools.lru_cache(maxsize=1)
+def _get_cached_corpus():
+    return _load_self_peptides()
+
+def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
     pep = candidate.peptide_mut
     if not pep:
         return (SCORE_NAME, 0.0)
+    
     pep = pep.strip().upper()
-    corpus = _load_self_peptides()
+    corpus = _get_cached_corpus()
+    
     same_len = [p for p in corpus if len(p) == len(pep)]
+    
     if not same_len:
-        return (SCORE_NAME, 0.0)
+        return (SCORE_NAME, 0.0) # Score neutre si pas de comparaison possible
+    
     min_dist = min(_hamming(pep, p) for p in same_len)
+
     if min_dist == 0:
-        score = -10
+        score = -10.0  # Match exact (Danger maximum)
     elif min_dist == 1:
-        score = -5
+        score = -5.0   # Très proche
     elif min_dist == 2:
-        score = -3
+        score = -2.0   # Modérément proche
     else:
-        score = -1 / min_dist
+        score = 0.0    # Distance >= 3 : On considère que c'est "safe" (Neutre)
 
     return (SCORE_NAME, float(score))
 
