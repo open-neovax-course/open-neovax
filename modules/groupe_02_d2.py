@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
-import functools
 
 # ──────────────────────────────────────────────────────────────────────
 # Import the Candidate type.
@@ -68,7 +67,6 @@ def _hamming(a, b) -> int:
 
 
 # Chargement unique (Optimisation Performance)
-@functools.lru_cache(maxsize=1)
 def _get_cached_corpus():
     return _load_self_peptides()
 
