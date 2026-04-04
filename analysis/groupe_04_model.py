@@ -20,7 +20,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
@@ -40,7 +40,10 @@ LABEL_MAP = {"GOLD": 1, "GOOD": 1, "BAD": 0, "TRAP": 0}
 def load_score_matrix(filename: str) -> pd.DataFrame:
     path = ANALYSIS_DIR / filename
     if not path.exists():
-        print(f"[ERROR] {path} not found. Run: python analysis/score_analysis.py --generate")
+        print(
+            f"[ERROR] {path} not found. "
+            "Run: python analysis/score_analysis.py --generate"
+        )
         sys.exit(1)
     return pd.read_csv(path)
 
@@ -60,16 +63,21 @@ def prepare_training_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
 
 MODELS: dict = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-    "Random Forest":       RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42),
-    "Gradient Boosting":   GradientBoostingClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42),
-    "SVM (RBF)":           SVC(kernel="rbf", probability=True, random_state=42),
-    "KNN (k=5)":           KNeighborsClassifier(n_neighbors=5),
+    "Random Forest": RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=42
+    ),
+    "Gradient Boosting": GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42
+    ),
+    "SVM (RBF)": SVC(kernel="rbf", probability=True, random_state=42),
+    "KNN (k=5)": KNeighborsClassifier(n_neighbors=5),
 }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. CROSS-VALIDATION COMPARISON
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def compare_models(X_scaled, y: pd.Series) -> str:
     """5-fold cross-validation for all models. Returns name of best model."""
@@ -85,7 +93,8 @@ def compare_models(X_scaled, y: pd.Series) -> str:
         auc_scores = cross_val_score(model, X_scaled, y, cv=5, scoring="roc_auc")
         mean_acc = acc_scores.mean()
         print(
-            f"{name:<25}  {mean_acc:>10.3f}  {acc_scores.std():>8.3f}  {auc_scores.mean():>8.3f}"
+            f"{name:<25}  {mean_acc:>10.3f}"
+            f"  {acc_scores.std():>8.3f}  {auc_scores.mean():>8.3f}"
         )
         if mean_acc > best_acc:
             best_acc, best_name = mean_acc, name
@@ -97,6 +106,7 @@ def compare_models(X_scaled, y: pd.Series) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. FEATURE IMPORTANCE
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _bar(value: float, scale: float = 40) -> str:
     return "#" * max(0, int(abs(value) * scale))
@@ -124,7 +134,9 @@ def show_feature_importance(X: pd.DataFrame, X_scaled, y: pd.Series) -> None:
     # --- Random Forest (impurity importance) ---
     rf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
     rf.fit(X_scaled, y)
-    rf_imp = pd.Series(rf.feature_importances_, index=X.columns).sort_values(ascending=False)
+    rf_imp = pd.Series(rf.feature_importances_, index=X.columns).sort_values(
+        ascending=False
+    )
 
     print("\n[Random Forest — feature importance]")
     print(f"  {'Feature':<35}  {'Importance':>10}")
@@ -134,9 +146,13 @@ def show_feature_importance(X: pd.DataFrame, X_scaled, y: pd.Series) -> None:
         print(f"  {feat:<35}  {imp:>10.3f}  {_bar(imp, 60)}{marker}")
 
     # --- Gradient Boosting (impurity importance) ---
-    gb = GradientBoostingClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
+    gb = GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42
+    )
     gb.fit(X_scaled, y)
-    gb_imp = pd.Series(gb.feature_importances_, index=X.columns).sort_values(ascending=False)
+    gb_imp = pd.Series(gb.feature_importances_, index=X.columns).sort_values(
+        ascending=False
+    )
 
     print("\n[Gradient Boosting — feature importance]")
     print(f"  {'Feature':<35}  {'Importance':>10}")
@@ -151,6 +167,7 @@ def show_feature_importance(X: pd.DataFrame, X_scaled, y: pd.Series) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. RANKING — patient_zero
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def rank_patient_zero(
     X_train: pd.DataFrame,
@@ -178,9 +195,9 @@ def rank_patient_zero(
     print("-" * 50)
     for name, model in MODELS.items():
         model.fit(X_train_scaled, y_train)
-        y_zero_true = [LABEL_MAP.get(l, -1) for l in labels_zero]
+        y_zero_true = [LABEL_MAP.get(lbl, -1) for lbl in labels_zero]
         # Only evaluate on candidates with known labels
-        known_mask = [l in LABEL_MAP for l in labels_zero]
+        known_mask = [lbl in LABEL_MAP for lbl in labels_zero]
         if sum(known_mask) == 0:
             continue
         y_true_k = [y for y, m in zip(y_zero_true, known_mask) if m]
@@ -205,7 +222,12 @@ def rank_patient_zero(
     print(f"  {'#':>3}  {'Candidate':<12}  {'P(GOOD)':>8}  Label")
     print("  " + "-" * 42)
     for i, (cid, prob, label) in enumerate(ranking, 1):
-        marker = " ← SUCCESS" if cid == "CAND_01" and i == 1 else (" ← CAND_01" if cid == "CAND_01" else "")
+        if cid == "CAND_01" and i == 1:
+            marker = " ← SUCCESS"
+        elif cid == "CAND_01":
+            marker = " ← CAND_01"
+        else:
+            marker = ""
         print(f"  {i:>3}. {cid:<12}  {prob:>8.3f}  {label}{marker}")
     print()
 
@@ -213,6 +235,7 @@ def rank_patient_zero(
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. REAL DATA — Spearman correlation + REAL vs DECOY AUC
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def evaluate_real_data(
     X_train: pd.DataFrame,
@@ -249,14 +272,17 @@ def evaluate_real_data(
         for name, model in MODELS.items():
             model.fit(X_train_scaled, y_train)
             idx = df_real_only.index.tolist()
-            X_real_only = X_real_scaled[
-                [list(df_real.index).index(i) for i in idx]
-            ]
+            X_real_only = X_real_scaled[[list(df_real.index).index(i) for i in idx]]
             scores = model.predict_proba(X_real_only)[:, 1]
             ic50 = df_real_only["ic50_nm"].values
             # Lower IC50 = better binder → negative correlation expected
             rho, pval = spearmanr(scores, ic50)
-            interp = "good (neg corr with IC50)" if rho < -0.2 else ("weak" if abs(rho) < 0.2 else "inverted")
+            if rho < -0.2:
+                interp = "good (neg corr with IC50)"
+            elif abs(rho) < 0.2:
+                interp = "weak"
+            else:
+                interp = "inverted"
             print(f"  {name:<25}  {rho:>8.3f}  {pval:>10.4f}  {interp}")
 
     # 6b — REAL vs DECOY AUC
@@ -279,6 +305,7 @@ def evaluate_real_data(
 # ──────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     print("\nGroup 04 — ML Global Scoring Model")
