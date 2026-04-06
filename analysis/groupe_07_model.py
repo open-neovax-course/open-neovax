@@ -167,7 +167,9 @@ class DataLoader:
 
         return X, candidate_ids, labels_raw
 
-    def load_patient_real(self, path: Path, train_columns: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def load_patient_real(
+        self, path: Path, train_columns: list[str]
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Load patient_real data with IC50 merged."""
         if not path.exists():
             return pd.DataFrame(), pd.DataFrame()
@@ -269,12 +271,21 @@ class Visualizer:
         plt.tight_layout()
         self.save_plot(filename)
 
-    def plot_spearman(self, df_real: pd.DataFrame, score_col: str, filename: str) -> tuple[float, float]:
+    def plot_spearman(
+        self, df_real: pd.DataFrame, score_col: str, filename: str
+    ) -> tuple[float, float]:
         """Scatter plot: pipeline score vs experimental IC50."""
         rho, pvalue = spearmanr(df_real[score_col], df_real["ic50_nm"])
 
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.scatter(df_real[score_col], df_real["ic50_nm"], color="#e74c3c", alpha=0.7, s=60, edgecolors="white")
+        ax.scatter(
+            df_real[score_col],
+            df_real["ic50_nm"],
+            color="#e74c3c",
+            alpha=0.7,
+            s=60,
+            edgecolors="white",
+        )
 
         for _, row in df_real.iterrows():
             ax.annotate(
@@ -289,12 +300,14 @@ class Visualizer:
 
         ax.set_xlabel("Pipeline RF score (higher = more likely GOOD/GOLD)", fontsize=11)
         ax.set_ylabel("Experimental IC50 (nM, lower = tighter binder)", fontsize=11)
-        ax.set_title(f"Pipeline score vs experimental IC50 — patient_real\nSpearman ρ = {rho:+.3f}", fontsize=11)
+        ax.set_title(
+            f"Pipeline score vs experimental IC50 — patient_real\nSpearman ρ = {rho:+.3f}",
+            fontsize=11,
+        )
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
         self.save_plot(filename)
         return rho, pvalue
-
 
 
 # =============================================================================
@@ -542,9 +555,13 @@ class Evaluator:
         else:
             print("  [SKIP] Could not load ordinal data.\n")
 
-    def evaluate_patient_real(self, model_rf: RandomForestClassifier,
-        model_gb: GradientBoostingClassifier, scaler: StandardScaler,
-        feature_names: list[str]) -> dict:
+    def evaluate_patient_real(
+        self,
+        model_rf: RandomForestClassifier,
+        model_gb: GradientBoostingClassifier,
+        scaler: StandardScaler,
+        feature_names: list[str],
+    ) -> dict:
         """Evaluate on patient_real: Spearman correlation + REAL/DECOY AUC."""
         loader = DataLoader()
 
@@ -562,7 +579,7 @@ class Evaluator:
         X_real_scaled = scaler.transform(X_real)
         rf_proba = model_rf.predict_proba(X_real_scaled)[:, 1]
         gb_proba = model_gb.predict_proba(X_real_scaled)[:, 1]
-        
+
         df = df.copy()
         df["rf_score"] = rf_proba
         df["gb_score"] = gb_proba
@@ -580,17 +597,27 @@ class Evaluator:
             results["spearman_p_rf"] = p_rf
             results["spearman_rho_gb"] = rho_gb
             results["spearman_p_gb"] = p_gb
-            
-            print(f"\n  Spearman correlation (RF vs IC50): ρ = {rho_rf:+.3f} (p={p_rf:.4f})")
-            print(f"  Spearman correlation (GB vs IC50): ρ = {rho_gb:+.3f} (p={p_gb:.4f})")
+
+            print(
+                f"\n  Spearman correlation (RF vs IC50): ρ = {rho_rf:+.3f} (p={p_rf:.4f})"
+            )
+            print(
+                f"  Spearman correlation (GB vs IC50): ρ = {rho_gb:+.3f} (p={p_gb:.4f})"
+            )
 
             # Plot with RF (or both? choix: RF)
-            rho, pvalue = self.viz.plot_spearman(df_real, "rf_score", "patient_real_spearman.png")
+            rho, pvalue = self.viz.plot_spearman(
+                df_real, "rf_score", "patient_real_spearman.png"
+            )
 
             if rho < 0 and pvalue < 0.05:
-                print("   Significant negative correlation: higher score -> lower IC50 -> biologically valid.")
+                print(
+                    "   Significant negative correlation: higher score -> lower IC50 -> biologically valid."
+                )
             elif pvalue >= 0.05:
-                print("   No significant correlation with IC50 (expected: modules are proxies).")
+                print(
+                    "   No significant correlation with IC50 (expected: modules are proxies)."
+                )
             else:
                 print(f"  Unexpected direction: ρ = {rho:+.3f}")
 
@@ -622,9 +649,8 @@ class Evaluator:
         return results
 
 
-
 # =============================================================================
-# SHAP EXPLAINABILITY 
+# SHAP EXPLAINABILITY
 # =============================================================================
 class ShapExplainer:
     """SHAP explainability for per-candidate predictions."""
@@ -668,7 +694,7 @@ class ShapExplainer:
 
         if isinstance(raw_shap, list):
             # Classic format — two arrays, one per class
-            sv = raw_shap[1]                      # class 1 = GOOD/GOLD
+            sv = raw_shap[1]  # class 1 = GOOD/GOLD
             base = (
                 explainer.expected_value[1]
                 if isinstance(explainer.expected_value, (list, np.ndarray))
@@ -688,9 +714,9 @@ class ShapExplainer:
             base = float(explainer.expected_value)
 
         # Safety check — shapes must now match
-        assert sv.shape == X_df.shape, (
-            f"SHAP shape mismatch: sv={sv.shape}  X_df={X_df.shape}"
-        )
+        assert (
+            sv.shape == X_df.shape
+        ), f"SHAP shape mismatch: sv={sv.shape}  X_df={X_df.shape}"
 
         probas = model.predict_proba(X_test)[:, 1]
 
@@ -789,9 +815,7 @@ class ShapExplainer:
             rank_bad = int(np.argsort(-probas).tolist().index(bad_idx)) + 1
             print(f"\n  Why {cid_bad} (BAD) is ranked #{rank_bad}:")
             bad_shap = sv[bad_idx]
-            contributions = sorted(
-                zip(feature_names, bad_shap), key=lambda x: x[1]
-            )
+            contributions = sorted(zip(feature_names, bad_shap), key=lambda x: x[1])
             for feat, val in contributions[:5]:
                 arrow = "↑" if val > 0 else "↓"
                 print(f"    {arrow} {feat}: {val:+.4f}")
@@ -805,7 +829,6 @@ class ShapExplainer:
             "    The bar length = magnitude of that module's contribution.\n"
         )
         print("=" * 60)
-
 
 
 # =============================================================================
@@ -841,9 +864,6 @@ def feature_selection(
             f"+/- {scores.std():.3f}"
         )
     print()
-
-
-
 
 
 # =============================================================================
@@ -998,7 +1018,7 @@ def main():
     evaluator.evaluate_patient_real(rf, gb, trainer.scaler, feature_names)
 
     # -------------------------------------------------------------------------
-    # SHAP explainability 
+    # SHAP explainability
     # -------------------------------------------------------------------------
     print("\n[Bonus] SHAP explainability...")
     shap_explainer = ShapExplainer(viz)
@@ -1007,9 +1027,8 @@ def main():
         X_test=X_zero_scaled,
         X_test_raw=X_zero_raw,
         candidate_ids=ids_zero,
-        labels_raw=labels_zero
+        labels_raw=labels_zero,
     )
-
 
     print("\n" + "=" * 60)
     print("Pipeline complete!")
