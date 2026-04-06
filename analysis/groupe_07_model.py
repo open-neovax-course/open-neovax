@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import spearmanr
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     GradientBoostingRegressor,
@@ -25,6 +26,7 @@ from sklearn.metrics import (
     auc,
     classification_report,
     confusion_matrix,
+    roc_auc_score,
     roc_curve,
 )
 from sklearn.model_selection import (
@@ -43,6 +45,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 PATIENT_ONE = PROJECT_ROOT / "analysis" / "scores_patient_one.csv"
 PATIENT_ZERO = PROJECT_ROOT / "analysis" / "scores_patient_zero.csv"
+PATIENT_REAL = PROJECT_ROOT / "analysis" / "scores_patient_real.csv"
+PATIENT_REAL_RAW = PROJECT_ROOT / "data" / "patient_real.csv"
 
 LABEL_MAP = {"GOLD": 1, "GOOD": 1, "BAD": 0, "TRAP": 0}
 ORDINAL_MAP = {"TRAP": 0, "BAD": 1, "MEDIOCRE": 2, "GOOD": 3, "GOLD": 4}
@@ -264,6 +268,33 @@ class Visualizer:
         ax.set_title("Confusion Matrix (hold-out 20%)")
         plt.tight_layout()
         self.save_plot(filename)
+
+    def plot_spearman(self, df_real: pd.DataFrame, score_col: str, filename: str) -> tuple[float, float]:
+        """Scatter plot: pipeline score vs experimental IC50."""
+        rho, pvalue = spearmanr(df_real[score_col], df_real["ic50_nm"])
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.scatter(df_real[score_col], df_real["ic50_nm"], color="#e74c3c", alpha=0.7, s=60, edgecolors="white")
+
+        for _, row in df_real.iterrows():
+            ax.annotate(
+                row["candidate_id"],
+                (row[score_col], row["ic50_nm"]),
+                fontsize=6,
+                ha="left",
+                va="bottom",
+                xytext=(3, 3),
+                textcoords="offset points",
+            )
+
+        ax.set_xlabel("Pipeline RF score (higher = more likely GOOD/GOLD)", fontsize=11)
+        ax.set_ylabel("Experimental IC50 (nM, lower = tighter binder)", fontsize=11)
+        ax.set_title(f"Pipeline score vs experimental IC50 — patient_real\nSpearman ρ = {rho:+.3f}", fontsize=11)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        self.save_plot(filename)
+        return rho, pvalue
+
 
 
 # =============================================================================
@@ -511,6 +542,84 @@ class Evaluator:
         else:
             print("  [SKIP] Could not load ordinal data.\n")
 
+    def evaluate_patient_real(self, model_rf: RandomForestClassifier,
+        model_gb: GradientBoostingClassifier, scaler: StandardScaler,
+        feature_names: list[str]) -> dict:
+        """Evaluate on patient_real: Spearman correlation + REAL/DECOY AUC."""
+        loader = DataLoader()
+
+        if not PATIENT_REAL.exists():
+            print(
+                f"  [SKIP] {PATIENT_REAL} not found.\n"
+                "  -> Run: python analysis/score_analysis.py --generate\n"
+            )
+            return {}
+
+        X_real, df = loader.load_patient_real(PATIENT_REAL, feature_names)
+        if X_real.empty:
+            return {}
+
+        X_real_scaled = scaler.transform(X_real)
+        rf_proba = model_rf.predict_proba(X_real_scaled)[:, 1]
+        gb_proba = model_gb.predict_proba(X_real_scaled)[:, 1]
+        
+        df = df.copy()
+        df["rf_score"] = rf_proba
+        df["gb_score"] = gb_proba
+
+        results = {}
+
+        # Task 1: Spearman correlation with IC50
+        real_mask = df["label"].astype(str).str.upper().str.startswith("REAL")
+        df_real = df[real_mask].copy().dropna(subset=["ic50_nm"])
+
+        if len(df_real) > 0:
+            rho_rf, p_rf = spearmanr(df_real["rf_score"], df_real["ic50_nm"])
+            rho_gb, p_gb = spearmanr(df_real["gb_score"], df_real["ic50_nm"])
+            results["spearman_rho_rf"] = rho_rf
+            results["spearman_p_rf"] = p_rf
+            results["spearman_rho_gb"] = rho_gb
+            results["spearman_p_gb"] = p_gb
+            
+            print(f"\n  Spearman correlation (RF vs IC50): ρ = {rho_rf:+.3f} (p={p_rf:.4f})")
+            print(f"  Spearman correlation (GB vs IC50): ρ = {rho_gb:+.3f} (p={p_gb:.4f})")
+
+            # Plot with RF (or both? choix: RF)
+            rho, pvalue = self.viz.plot_spearman(df_real, "rf_score", "patient_real_spearman.png")
+
+            if rho < 0 and pvalue < 0.05:
+                print("   Significant negative correlation: higher score -> lower IC50 -> biologically valid.")
+            elif pvalue >= 0.05:
+                print("   No significant correlation with IC50 (expected: modules are proxies).")
+            else:
+                print(f"  Unexpected direction: ρ = {rho:+.3f}")
+
+        # Task 2: REAL vs DECOY classification
+        binary = df["label"].astype(str).str.upper().str.startswith("REAL").astype(int)
+        auc_rf = roc_auc_score(binary, df["rf_score"])
+        auc_gb = roc_auc_score(binary, df["gb_score"])
+        n_real = binary.sum()
+        n_decoy = (binary == 0).sum()
+
+        print(f"\n  REAL vs DECOY ({n_real} REAL / {n_decoy} DECOY):")
+        print(f"    AUC — Random Forest: {auc_rf:.3f}")
+        print(f"    AUC — Gradient Boosting: {auc_gb:.3f}")
+        results["auc_rf"] = auc_rf
+        results["auc_gb"] = auc_gb
+
+        if auc_rf >= 0.80:
+            print("   Pipeline clearly separates REAL from DECOY.")
+        elif auc_rf >= 0.65:
+            print("   Partial separation of REAL from DECOY.")
+        else:
+            print("   Weak discrimination, training labels may not generalize.")
+
+        # Save full table
+        out_csv = PROJECT_ROOT / "analysis" / "patient_real_evaluation.csv"
+        df.to_csv(out_csv, index=False)
+        print(f"\n  Full table saved -> {out_csv}\n")
+
+        return results
 
 # =============================================================================
 # FEATURE SELECTION
@@ -671,7 +780,7 @@ def main():
     # -------------------------------------------------------------------------
     # Visualizations (heatmap, ROC curve, confusion matrix)
     # -------------------------------------------------------------------------
-    viz.plot_heatmap(X_zero_scaled, labels_zero, feature_names, "score_heatmap.png")
+    viz.plot_heatmap(X_zero_scaled, ids_zero, feature_names, "score_heatmap.png")
 
     y_proba_cv = cross_val_predict(
         rf, X_train_scaled, y_train, cv=5, method="predict_proba"
@@ -691,6 +800,16 @@ def main():
     evaluator.run_ordinal_pipeline(
         loader, trainer, feature_names, X_zero_raw, ids_zero, labels_zero
     )
+
+    # -------------------------------------------------------------------------
+    # Patient real evaluation
+    # -------------------------------------------------------------------------
+    print("\n[Bonus] Evaluating on patient_real.csv...")
+    evaluator.evaluate_patient_real(rf, gb, trainer.scaler, feature_names)
+
+    print("\n" + "=" * 60)
+    print("Pipeline complete!")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
