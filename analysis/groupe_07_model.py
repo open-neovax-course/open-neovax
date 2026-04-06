@@ -183,6 +183,24 @@ class DataLoader:
 
         return X, candidate_ids, labels_raw
 
+    def load_patient_real(self, path: Path, train_columns: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Load patient_real data with IC50 merged."""
+        if not path.exists():
+            return pd.DataFrame(), pd.DataFrame()
+
+        df = pd.read_csv(path)
+
+        # Merge IC50 from raw data if available
+        if PATIENT_REAL_RAW.exists():
+            df_raw = pd.read_csv(PATIENT_REAL_RAW)[["candidate_id", "ic50_nm"]]
+            df = df.merge(df_raw, on="candidate_id", how="left")
+
+        feature_cols = self._feature_columns(df)
+        X = df[feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+        X = X.reindex(columns=train_columns, fill_value=0.0)
+
+        return X, df
+
 
 # =============================================================================
 # VISUALIZER (separate class for all plots)
