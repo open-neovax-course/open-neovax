@@ -621,6 +621,193 @@ class Evaluator:
 
         return results
 
+
+
+# =============================================================================
+# SHAP EXPLAINABILITY 
+# =============================================================================
+class ShapExplainer:
+    """SHAP explainability for per-candidate predictions."""
+
+    def __init__(self, visualizer):
+        self.viz = visualizer
+
+    def explain(
+        self,
+        model,
+        X_test: "np.ndarray",
+        X_test_raw: "pd.DataFrame",
+        candidate_ids: list,
+        labels_raw: list,
+    ) -> None:
+        """
+        Generate SHAP explanations for model predictions.
+        Deliverables:
+          - analysis/shap_summary.png         (global beeswarm)
+          - analysis/shap_waterfall_cand_01.png
+          - analysis/shap_waterfall_gold.png
+          - analysis/shap_waterfall_bad.png
+        """
+        try:
+            import shap
+        except ImportError:
+            print("SHAP not installed. Run: pip install shap")
+            return
+
+        print("=" * 60)
+        print("SHAP EXPLAINABILITY")
+        print("=" * 60)
+
+        # ── Rebuild a clean DataFrame from the scaled array ───────────────
+        feature_names = list(X_test_raw.columns)
+        X_df = pd.DataFrame(X_test, columns=feature_names)
+
+        # ── Compute SHAP values ───────────────────────────────────────────
+        explainer = shap.TreeExplainer(model)
+        raw_shap = explainer.shap_values(X_df)
+
+        if isinstance(raw_shap, list):
+            # Classic format — two arrays, one per class
+            sv = raw_shap[1]                      # class 1 = GOOD/GOLD
+            base = (
+                explainer.expected_value[1]
+                if isinstance(explainer.expected_value, (list, np.ndarray))
+                else float(explainer.expected_value)
+            )
+        elif isinstance(raw_shap, np.ndarray) and raw_shap.ndim == 3:
+            # New format — single 3-D array (n_samples, n_features, n_classes)
+            sv = raw_shap[:, :, 1]
+            base = (
+                explainer.expected_value[1]
+                if hasattr(explainer.expected_value, "__len__")
+                else float(explainer.expected_value)
+            )
+        else:
+            # Already a plain 2-D array (regression or single-output)
+            sv = raw_shap
+            base = float(explainer.expected_value)
+
+        # Safety check — shapes must now match
+        assert sv.shape == X_df.shape, (
+            f"SHAP shape mismatch: sv={sv.shape}  X_df={X_df.shape}"
+        )
+
+        probas = model.predict_proba(X_test)[:, 1]
+
+        # ── 1. Global summary (beeswarm) ──────────────────────────────────
+        print("\n[1/3] Generating SHAP summary plot...")
+        plt.figure(figsize=(12, max(6, len(feature_names) * 0.45)))
+        shap.summary_plot(sv, X_df, feature_names=feature_names, show=False)
+        plt.title(
+            "SHAP Summary — patient_zero\n"
+            "Each dot = one candidate.  Red = high feature value.  "
+            "Right = pushes toward GOOD/GOLD.",
+            fontsize=10,
+            pad=10,
+        )
+        plt.tight_layout()
+        self.viz.save_plot("shap_summary.png")
+        print("  → Red dot on the right  : high score value pushes toward GOOD/GOLD")
+        print("  → Blue dot on the left  : low score value pushes toward BAD/TRAP")
+
+        # ── 2. Waterfall plots (per candidate) ────────────────────────────
+        print("\n[2/3] Generating waterfall plots...")
+
+        cand01_idx = (
+            candidate_ids.index("CAND_01") if "CAND_01" in candidate_ids else None
+        )
+        gold_idx = next(
+            (i for i, lbl in enumerate(labels_raw) if lbl in ("GOLD", "GOOD")), None
+        )
+        bad_idx = next(
+            (i for i, lbl in enumerate(labels_raw) if lbl in ("BAD", "TRAP")), None
+        )
+
+        targets = []
+        if cand01_idx is not None:
+            targets.append(("cand_01", cand01_idx))
+        if gold_idx is not None and gold_idx != cand01_idx:
+            targets.append(("gold", gold_idx))
+        if bad_idx is not None:
+            targets.append(("bad", bad_idx))
+
+        for tag, idx in targets:
+            cid = candidate_ids[idx]
+            label = labels_raw[idx] if idx < len(labels_raw) else "UNKNOWN"
+
+            exp = shap.Explanation(
+                values=sv[idx],
+                base_values=base,
+                data=X_df.iloc[idx].values,
+                feature_names=feature_names,
+            )
+
+            plt.figure(figsize=(10, max(5, len(feature_names) * 0.42)))
+            shap.waterfall_plot(exp, show=False, max_display=12)
+            plt.title(
+                f"SHAP Waterfall — {cid}  [{label}]  "
+                f"(predicted prob = {probas[idx]:.3f})\n"
+                "Each bar = contribution of one module to the final prediction.",
+                fontsize=9,
+                pad=8,
+            )
+            plt.tight_layout()
+            self.viz.save_plot(f"shap_waterfall_{tag}.png")
+
+        # ── 3. Biological interpretation ──────────────────────────────────
+        print("\n[3/3] Biological interpretation")
+        print("─" * 50)
+
+        mean_abs = np.abs(sv).mean(axis=0)
+        top_importance = pd.Series(mean_abs, index=feature_names).sort_values(
+            ascending=False
+        )
+
+        print("\n  Mean |SHAP| per module (global):")
+        for feat, val in top_importance.items():
+            bar = "█" * max(1, int(val * 60))
+            print(f"    {feat:35s}  {val:.4f}  {bar}")
+
+        top_feat = top_importance.index[0]
+        print(f"\n  ► Most impactful module globally : '{top_feat}'")
+
+        # Why CAND_01 is where it is
+        if cand01_idx is not None:
+            rank = int(np.argsort(-probas).tolist().index(cand01_idx)) + 1
+            print(f"\n  Why CAND_01 is ranked #{rank}:")
+            cand_shap = sv[cand01_idx]
+            contributions = sorted(
+                zip(feature_names, cand_shap), key=lambda x: -abs(x[1])
+            )
+            for feat, val in contributions[:5]:
+                arrow = "↑" if val > 0 else "↓"
+                print(f"    {arrow} {feat}: {val:+.4f}")
+
+        # Why a BAD candidate is at the bottom
+        if bad_idx is not None:
+            cid_bad = candidate_ids[bad_idx]
+            rank_bad = int(np.argsort(-probas).tolist().index(bad_idx)) + 1
+            print(f"\n  Why {cid_bad} (BAD) is ranked #{rank_bad}:")
+            bad_shap = sv[bad_idx]
+            contributions = sorted(
+                zip(feature_names, bad_shap), key=lambda x: x[1]
+            )
+            for feat, val in contributions[:5]:
+                arrow = "↑" if val > 0 else "↓"
+                print(f"    {arrow} {feat}: {val:+.4f}")
+
+        print(
+            "\n  ► Reading the waterfall plots:\n"
+            "    f(x) = final predicted probability for this candidate.\n"
+            "    E[f(x)] = baseline probability (average over all candidates).\n"
+            "    Red bars push the score UP (toward GOOD/GOLD).\n"
+            "    Blue bars push the score DOWN (toward BAD/TRAP).\n"
+            "    The bar length = magnitude of that module's contribution.\n"
+        )
+        print("=" * 60)
+
+
+
 # =============================================================================
 # FEATURE SELECTION
 # =============================================================================
@@ -654,6 +841,9 @@ def feature_selection(
             f"+/- {scores.std():.3f}"
         )
     print()
+
+
+
 
 
 # =============================================================================
@@ -806,6 +996,20 @@ def main():
     # -------------------------------------------------------------------------
     print("\n[Bonus] Evaluating on patient_real.csv...")
     evaluator.evaluate_patient_real(rf, gb, trainer.scaler, feature_names)
+
+    # -------------------------------------------------------------------------
+    # SHAP explainability 
+    # -------------------------------------------------------------------------
+    print("\n[Bonus] SHAP explainability...")
+    shap_explainer = ShapExplainer(viz)
+    shap_explainer.explain(
+        model=rf,
+        X_test=X_zero_scaled,
+        X_test_raw=X_zero_raw,
+        candidate_ids=ids_zero,
+        labels_raw=labels_zero
+    )
+
 
     print("\n" + "=" * 60)
     print("Pipeline complete!")
