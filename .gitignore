@@ -36,6 +36,7 @@ build/
 # Generated analysis files (re-generate with: python analysis/score_analysis.py --generate)
 analysis/scores_*.csv
 analysis/model_weights.json
+analysis/*.png
 
 # Teacher notes (private, never commit)
 _teacher/
