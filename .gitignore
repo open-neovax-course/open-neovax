@@ -37,6 +37,7 @@ build/
 analysis/scores_*.csv
 analysis/model_weights.json
 analysis/*.png
+analysis/patient_real_evaluation.csv
 
 # Teacher notes (private, never commit)
 _teacher/
