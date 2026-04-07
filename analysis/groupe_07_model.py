@@ -50,17 +50,24 @@ ANALYSIS_DIR = PROJECT_ROOT / "analysis"
 # CONSTANTS
 # =============================================================================
 
-PATIENT_ONE      = ANALYSIS_DIR / "scores_patient_one.csv"
-PATIENT_ZERO     = ANALYSIS_DIR / "scores_patient_zero.csv"
-PATIENT_REAL     = ANALYSIS_DIR / "scores_patient_real.csv"
+PATIENT_ONE = ANALYSIS_DIR / "scores_patient_one.csv"
+PATIENT_ZERO = ANALYSIS_DIR / "scores_patient_zero.csv"
+PATIENT_REAL = ANALYSIS_DIR / "scores_patient_real.csv"
 PATIENT_REAL_RAW = PROJECT_ROOT / "data" / "patient_real.csv"
 
-LABEL_MAP    = {"GOLD": 1, "GOOD": 1, "BAD": 0, "TRAP": 0}
-ORDINAL_MAP  = {"TRAP": 0, "BAD": 1, "MEDIOCRE": 2, "GOOD": 3, "GOLD": 4}
+LABEL_MAP = {"GOLD": 1, "GOOD": 1, "BAD": 0, "TRAP": 0}
+ORDINAL_MAP = {"TRAP": 0, "BAD": 1, "MEDIOCRE": 2, "GOOD": 3, "GOLD": 4}
 
 META_COLS = {
-    "candidate_id", "peptide_wt", "peptide_mut", "mut_pos_1based",
-    "gene", "hla_allele", "note", "label", "ic50_nm",
+    "candidate_id",
+    "peptide_wt",
+    "peptide_mut",
+    "mut_pos_1based",
+    "gene",
+    "hla_allele",
+    "note",
+    "label",
+    "ic50_nm",
 }
 
 RANDOM_STATE = 42
@@ -75,6 +82,7 @@ def _save_plot(path: Path) -> None:
 # =============================================================================
 # HELPERS
 # =============================================================================
+
 
 def _label(raw: str) -> str:
     """Extract label keyword from raw string (handles annotated notes)."""
@@ -103,6 +111,7 @@ def _save_plot(path: Path) -> None:
 # DATA LOADING
 # =============================================================================
 
+
 def load_training(ordinal: bool = False) -> tuple[pd.DataFrame, pd.Series, list[str]]:
     """Load patient_one scores. Binary (MEDIOCRE excluded) or ordinal (0-4)."""
     if not PATIENT_ONE.exists():
@@ -123,7 +132,9 @@ def load_training(ordinal: bool = False) -> tuple[pd.DataFrame, pd.Series, list[
     return X, y, feats
 
 
-def load_validation(train_columns: list[str]) -> tuple[pd.DataFrame, list[str], list[str]]:
+def load_validation(
+    train_columns: list[str],
+) -> tuple[pd.DataFrame, list[str], list[str]]:
     """Load patient_zero scores aligned to training columns."""
     if not PATIENT_ZERO.exists():
         print(f"[ERROR] {PATIENT_ZERO} not found.")
@@ -132,7 +143,9 @@ def load_validation(train_columns: list[str]) -> tuple[pd.DataFrame, list[str], 
     df = pd.read_csv(PATIENT_ZERO)
     ids = df["candidate_id"].tolist()
     col = _label_col(df)
-    labels = df[col].astype(str).apply(_label).tolist() if col else ["UNKNOWN"] * len(df)
+    labels = (
+        df[col].astype(str).apply(_label).tolist() if col else ["UNKNOWN"] * len(df)
+    )
 
     X = df[_feat_cols(df)].apply(pd.to_numeric, errors="coerce").fillna(0.0)
     X = X.reindex(columns=train_columns, fill_value=0.0)
@@ -159,9 +172,12 @@ def load_patient_real(train_columns: list[str]) -> tuple[pd.DataFrame, pd.DataFr
 # FEATURE IMPORTANCE
 # =============================================================================
 
+
 def importance_rf(model: RandomForestClassifier, feature_names: list[str]) -> pd.Series:
     """Built-in Gini importance from Random Forest."""
-    return pd.Series(model.feature_importances_, index=feature_names).sort_values(ascending=False)
+    return pd.Series(model.feature_importances_, index=feature_names).sort_values(
+        ascending=False
+    )
 
 
 def importance_lr(model: LogisticRegression, feature_names: list[str]) -> pd.Series:
@@ -170,10 +186,16 @@ def importance_lr(model: LogisticRegression, feature_names: list[str]) -> pd.Ser
     return coefs.reindex(coefs.abs().sort_values(ascending=False).index)
 
 
-def importance_permutation(model, X_scaled: np.ndarray, y: pd.Series, feature_names: list[str]) -> pd.Series:
+def importance_permutation(
+    model, X_scaled: np.ndarray, y: pd.Series, feature_names: list[str]
+) -> pd.Series:
     """Permutation importance — model-agnostic."""
-    result = permutation_importance(model, X_scaled, y, n_repeats=30, random_state=RANDOM_STATE)
-    return pd.Series(result.importances_mean, index=feature_names).sort_values(ascending=False)
+    result = permutation_importance(
+        model, X_scaled, y, n_repeats=30, random_state=RANDOM_STATE
+    )
+    return pd.Series(result.importances_mean, index=feature_names).sort_values(
+        ascending=False
+    )
 
 
 def print_importances(imp: pd.Series, title: str, top_n: int = 10) -> None:
@@ -188,7 +210,10 @@ def print_importances(imp: pd.Series, title: str, top_n: int = 10) -> None:
 # RANKING
 # =============================================================================
 
-def print_ranking(model, X_scaled: np.ndarray, ids: list[str], labels: list[str], title: str) -> None:
+
+def print_ranking(
+    model, X_scaled: np.ndarray, ids: list[str], labels: list[str], title: str
+) -> None:
     """Print candidates ranked by predicted probability of being GOOD/GOLD."""
     probas = model.predict_proba(X_scaled)[:, 1]
     ranking = sorted(zip(ids, probas, labels), key=lambda x: -x[1])
@@ -213,26 +238,41 @@ def print_ranking(model, X_scaled: np.ndarray, ids: list[str], labels: list[str]
 # BONUS 1 — FEATURE SELECTION
 # =============================================================================
 
-def feature_selection(X_scaled: np.ndarray, y: pd.Series, feature_names: list[str], imp: pd.Series) -> None:
+
+def feature_selection(
+    X_scaled: np.ndarray, y: pd.Series, feature_names: list[str], imp: pd.Series
+) -> None:
     """Try removing least important features and compare accuracy."""
     print("- Feature selection (remove least important)")
     n = len(feature_names)
     top_feats = imp.index.tolist()
 
-    for label, k in {"All features": n, "Top 75%": max(1, int(n * 0.75)),
-                     "Top 50%": max(1, int(n * 0.50)), "Top 25%": max(1, int(n * 0.25))}.items():
+    for label, k in {
+        "All features": n,
+        "Top 75%": max(1, int(n * 0.75)),
+        "Top 50%": max(1, int(n * 0.50)),
+        "Top 25%": max(1, int(n * 0.25)),
+    }.items():
         selected = [feature_names.index(f) for f in top_feats[:k]]
         scores = cross_val_score(
-            RandomForestClassifier(n_estimators=100, max_depth=5, random_state=RANDOM_STATE),
-            X_scaled[:, selected], y, cv=5, scoring="accuracy",
+            RandomForestClassifier(
+                n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+            ),
+            X_scaled[:, selected],
+            y,
+            cv=5,
+            scoring="accuracy",
         )
-        print(f"  {label:15s} ({k:2d} features)  acc = {scores.mean():.3f} +/- {scores.std():.3f}")
+        print(
+            f"  {label:15s} ({k:2d} features)  acc = {scores.mean():.3f} +/- {scores.std():.3f}"
+        )
     print()
 
 
 # =============================================================================
 # BONUS 2 — VISUALIZATIONS
 # =============================================================================
+
 
 def visualizations(
     rf: RandomForestClassifier,
@@ -260,7 +300,9 @@ def visualizations(
     _save_plot(ANALYSIS_DIR / "score_heatmap.png")
 
     # ROC curve (cross-validated on patient_one)
-    y_proba_cv = cross_val_predict(rf, X_train_scaled, y_train, cv=5, method="predict_proba")[:, 1]
+    y_proba_cv = cross_val_predict(
+        rf, X_train_scaled, y_train, cv=5, method="predict_proba"
+    )[:, 1]
     fpr, tpr, _ = roc_curve(y_train, y_proba_cv)
     roc_auc = auc(fpr, tpr)
     fig, ax = plt.subplots(figsize=(7, 6))
@@ -275,7 +317,9 @@ def visualizations(
     # Confusion matrix (hold-out)
     cm = confusion_matrix(y_te, y_pred)
     fig, ax = plt.subplots(figsize=(5, 4))
-    ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["BAD/TRAP", "GOOD/GOLD"]).plot(ax=ax, colorbar=False)
+    ConfusionMatrixDisplay(
+        confusion_matrix=cm, display_labels=["BAD/TRAP", "GOOD/GOLD"]
+    ).plot(ax=ax, colorbar=False)
     ax.set_title("Confusion Matrix (hold-out 20%)")
     _save_plot(ANALYSIS_DIR / "confusion_matrix.png")
 
@@ -283,6 +327,7 @@ def visualizations(
 # =============================================================================
 # BONUS 3 — HYPERPARAMETER TUNING
 # =============================================================================
+
 
 def hyperparameter_tuning(X_scaled: np.ndarray, y: pd.Series) -> None:
     """Try to beat 90% cross-validation accuracy with tuned Random Forest."""
@@ -292,17 +337,26 @@ def hyperparameter_tuning(X_scaled: np.ndarray, y: pd.Series) -> None:
     for n_est in (100, 200, 300):
         for depth in (3, 5, 7, None):
             scores = cross_val_score(
-                RandomForestClassifier(n_estimators=n_est, max_depth=depth, random_state=RANDOM_STATE),
-                X_scaled, y, cv=5, scoring="accuracy",
+                RandomForestClassifier(
+                    n_estimators=n_est, max_depth=depth, random_state=RANDOM_STATE
+                ),
+                X_scaled,
+                y,
+                cv=5,
+                scoring="accuracy",
             )
             mean = scores.mean()
             marker = "  <-- best so far" if mean > best_score else ""
-            print(f"  n_estimators={n_est:3d}  max_depth={str(depth) if depth else 'None':4s}  acc={mean:.3f} +/- {scores.std():.3f}{marker}")
+            print(
+                f"  n_estimators={n_est:3d}  max_depth={str(depth) if depth else 'None':4s}  acc={mean:.3f} +/- {scores.std():.3f}{marker}"
+            )
             if mean > best_score:
                 best_score = mean
                 best_params = {"n_estimators": n_est, "max_depth": depth}
 
-    print(f"\n  Best accuracy: {best_score:.3f} -> Beat 90%? {'YES' if best_score >= 0.90 else 'NOT YET'}")
+    print(
+        f"\n  Best accuracy: {best_score:.3f} -> Beat 90%? {'YES' if best_score >= 0.90 else 'NOT YET'}"
+    )
     print(f"  Best params  : {best_params}\n")
 
 
@@ -310,7 +364,10 @@ def hyperparameter_tuning(X_scaled: np.ndarray, y: pd.Series) -> None:
 # BONUS 4 — ORDINAL REGRESSION
 # =============================================================================
 
-def ordinal_regression(X_zero_raw: pd.DataFrame, ids_zero: list[str], labels_zero: list[str]) -> None:
+
+def ordinal_regression(
+    X_zero_raw: pd.DataFrame, ids_zero: list[str], labels_zero: list[str]
+) -> None:
     """Predict ordinal label 0-4 instead of binary classification."""
     X_ord, y_ord, ord_feats = load_training(ordinal=True)
     if X_ord.empty:
@@ -320,13 +377,19 @@ def ordinal_regression(X_zero_raw: pd.DataFrame, ids_zero: list[str], labels_zer
     scaler_ord = StandardScaler()
     X_ord_scaled = scaler_ord.fit_transform(X_ord)
 
-    reg = GradientBoostingRegressor(n_estimators=100, max_depth=3, random_state=RANDOM_STATE)
-    mae = -cross_val_score(reg, X_ord_scaled, y_ord, cv=5, scoring="neg_mean_absolute_error").mean()
+    reg = GradientBoostingRegressor(
+        n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+    )
+    mae = -cross_val_score(
+        reg, X_ord_scaled, y_ord, cv=5, scoring="neg_mean_absolute_error"
+    ).mean()
 
     print(f"  Candidates (all labels): {len(y_ord)}")
     print(f"  Label distribution     : {y_ord.value_counts().sort_index().to_dict()}")
     print(f"  MAE (5-fold CV)        : {mae:.3f}  (scale: 0=TRAP ... 4=GOLD)")
-    print(f"  {'Good result: < 0.5 grade off.' if mae < 0.5 else 'Moderate result: consider tuning.'}\n")
+    print(
+        f"  {'Good result: < 0.5 grade off.' if mae < 0.5 else 'Moderate result: consider tuning.'}\n"
+    )
 
     reg.fit(X_ord_scaled, y_ord)
     preds_train = reg.predict(X_ord_scaled)
@@ -336,7 +399,9 @@ def ordinal_regression(X_zero_raw: pd.DataFrame, ids_zero: list[str], labels_zer
     print(f"  {'Actual':10s}  {'Predicted':10s}  {'Score':>5s}  {'Error':>6s}")
     print("  " + "-" * 40)
     for actual, pred in list(zip(y_ord, preds_train))[:10]:
-        print(f"  {inv_map.get(int(round(actual)), '?'):10s}  {inv_map.get(int(round(pred)), '?'):10s}  {pred:5.2f}  {abs(actual - pred):6.2f}")
+        print(
+            f"  {inv_map.get(int(round(actual)), '?'):10s}  {inv_map.get(int(round(pred)), '?'):10s}  {pred:5.2f}  {abs(actual - pred):6.2f}"
+        )
 
     # Ordinal ranking on patient_zero
     X_zero = X_zero_raw.reindex(columns=ord_feats, fill_value=0.0)
@@ -365,6 +430,7 @@ def ordinal_regression(X_zero_raw: pd.DataFrame, ids_zero: list[str], labels_zer
 # PATIENT_REAL EVALUATION
 # =============================================================================
 
+
 def evaluate_patient_real(
     rf: RandomForestClassifier,
     gb: GradientBoostingClassifier,
@@ -392,7 +458,9 @@ def evaluate_patient_real(
     print("  " + "-" * 40)
     real_mask = df["label"].astype(str).str.upper().str.startswith("REAL")
     df_real = df[real_mask].copy()
-    df_real["ic50_nm"] = pd.to_numeric(df_real.get("ic50_nm", pd.Series(dtype=float)), errors="coerce")
+    df_real["ic50_nm"] = pd.to_numeric(
+        df_real.get("ic50_nm", pd.Series(dtype=float)), errors="coerce"
+    )
     df_real = df_real.dropna(subset=["ic50_nm"])
 
     print(f"  REAL candidates with valid IC50: {len(df_real)}")
@@ -404,19 +472,41 @@ def evaluate_patient_real(
 
         print(f"  RF : rho = {rho_rf:+.3f}  (p = {p_rf:.4f})")
         print(f"  GB : rho = {rho_gb:+.3f}  (p = {p_gb:.4f})")
-        print("  Note: negative rho = higher score -> lower IC50 -> biologically valid." if rho_rf < 0 and p_rf < 0.05
-              else "  No significant correlation (expected: modules are proxies)." if p_rf >= 0.05
-              else f"  Unexpected direction: rho = {rho_rf:+.3f}")
+        print(
+            "  Note: negative rho = higher score -> lower IC50 -> biologically valid."
+            if rho_rf < 0 and p_rf < 0.05
+            else (
+                "  No significant correlation (expected: modules are proxies)."
+                if p_rf >= 0.05
+                else f"  Unexpected direction: rho = {rho_rf:+.3f}"
+            )
+        )
 
         # Scatter plot
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.scatter(df_real["rf_score"], df_real["ic50_nm"], color="#e74c3c", alpha=0.7, s=60, edgecolors="white")
+        ax.scatter(
+            df_real["rf_score"],
+            df_real["ic50_nm"],
+            color="#e74c3c",
+            alpha=0.7,
+            s=60,
+            edgecolors="white",
+        )
         for _, row in df_real.iterrows():
-            ax.annotate(row["candidate_id"], (row["rf_score"], row["ic50_nm"]),
-                        fontsize=6, ha="left", va="bottom", xytext=(3, 3), textcoords="offset points")
+            ax.annotate(
+                row["candidate_id"],
+                (row["rf_score"], row["ic50_nm"]),
+                fontsize=6,
+                ha="left",
+                va="bottom",
+                xytext=(3, 3),
+                textcoords="offset points",
+            )
         ax.set_xlabel("Pipeline RF score (higher = more likely GOOD/GOLD)")
         ax.set_ylabel("Experimental IC50 (nM, lower = stronger binder)")
-        ax.set_title(f"Pipeline score vs IC50 — patient_real\nSpearman rho = {rho_rf:+.3f}  (p = {p_rf:.4f})")
+        ax.set_title(
+            f"Pipeline score vs IC50 — patient_real\nSpearman rho = {rho_rf:+.3f}  (p = {p_rf:.4f})"
+        )
         ax.grid(True, alpha=0.3)
         _save_plot(ANALYSIS_DIR / "patient_real_spearman.png")
 
@@ -428,14 +518,27 @@ def evaluate_patient_real(
     binary = df["label"].astype(str).str.upper().str.startswith("REAL").astype(int)
     auc_rf = roc_auc_score(binary, df["rf_score"])
     auc_gb = roc_auc_score(binary, df["gb_score"])
-    results.update({"auc_rf": auc_rf, "auc_gb": auc_gb, "n_real": binary.sum(), "n_decoy": (binary == 0).sum()})
+    results.update(
+        {
+            "auc_rf": auc_rf,
+            "auc_gb": auc_gb,
+            "n_real": binary.sum(),
+            "n_decoy": (binary == 0).sum(),
+        }
+    )
 
     print(f"  REAL: {binary.sum()}  |  DECOY: {(binary == 0).sum()}")
     print(f"  AUC — Random Forest    : {auc_rf:.3f}")
     print(f"  AUC — Gradient Boosting: {auc_gb:.3f}")
-    print("  Pipeline clearly separates REAL from DECOY." if auc_rf >= 0.80
-          else "  Partial separation of REAL from DECOY." if auc_rf >= 0.65
-          else "  Weak discrimination, training labels may not generalize.")
+    print(
+        "  Pipeline clearly separates REAL from DECOY."
+        if auc_rf >= 0.80
+        else (
+            "  Partial separation of REAL from DECOY."
+            if auc_rf >= 0.65
+            else "  Weak discrimination, training labels may not generalize."
+        )
+    )
 
     # Interpretation
     print("\n  Interpretation")
@@ -444,15 +547,21 @@ def evaluate_patient_real(
         rho, p = results["rho_rf"], results["p_rf"]
         if rho < 0 and p < 0.05:
             print(f"  rho = {rho:+.3f} (p={p:.4f}) — significant negative correlation.")
-            print("  Higher pipeline score -> lower IC50 -> stronger binder. Pipeline is biologically valid.")
+            print(
+                "  Higher pipeline score -> lower IC50 -> stronger binder. Pipeline is biologically valid."
+            )
         elif p >= 0.05:
-            print(f"  rho = {rho:+.3f} (p={p:.4f}) — no significant correlation with IC50.")
+            print(
+                f"  rho = {rho:+.3f} (p={p:.4f}) — no significant correlation with IC50."
+            )
             print("  Expected: our modules are proxies, not affinity predictors.")
         else:
             print(f"  rho = {rho:+.3f} (p={p:.4f}) — unexpected direction.")
     if "auc_rf" in results:
         auc_val = results["auc_rf"]
-        print(f"\n  AUC = {auc_val:.3f} — {'pipeline clearly separates REAL from DECOY.' if auc_val >= 0.80 else 'partial separation.' if auc_val >= 0.65 else 'weak discrimination.'}")
+        print(
+            f"\n  AUC = {auc_val:.3f} — {'pipeline clearly separates REAL from DECOY.' if auc_val >= 0.80 else 'partial separation.' if auc_val >= 0.65 else 'weak discrimination.'}"
+        )
 
     # Save table
     out_csv = ANALYSIS_DIR / "patient_real_evaluation.csv"
@@ -471,9 +580,6 @@ def shap_analysis(model, X_test, feature_names, candidate_ids, labels_raw) -> No
       - analysis/shap_waterfall_bad.png
     """
     try:
-        import matplotlib.pyplot as plt
-        import numpy as np
-        import pandas as pd
         import shap
     except ImportError:
         print("[SKIP] SHAP not installed. Run: pip install shap")
@@ -521,9 +627,15 @@ def shap_analysis(model, X_test, feature_names, candidate_ids, labels_raw) -> No
     print(f"  Plot saved -> {out_summary}")
 
     # Trouver les indices
-    cand01_idx = next((i for i, cid in enumerate(candidate_ids) if cid == "CAND_01"), None)
-    gold_idx = next((i for i, lbl in enumerate(labels_raw) if lbl in ("GOLD", "GOOD")), None)
-    bad_idx = next((i for i, lbl in enumerate(labels_raw) if lbl in ("BAD", "TRAP")), None)
+    cand01_idx = next(
+        (i for i, cid in enumerate(candidate_ids) if cid == "CAND_01"), None
+    )
+    gold_idx = next(
+        (i for i, lbl in enumerate(labels_raw) if lbl in ("GOLD", "GOOD")), None
+    )
+    bad_idx = next(
+        (i for i, lbl in enumerate(labels_raw) if lbl in ("BAD", "TRAP")), None
+    )
 
     targets = []
     if cand01_idx is not None:
@@ -585,30 +697,38 @@ def shap_analysis(model, X_test, feature_names, candidate_ids, labels_raw) -> No
     if cand01_idx is not None:
         rank = np.argsort(-probas).tolist().index(cand01_idx) + 1
         print(f"\n  Why CAND_01 is ranked #{rank}:")
-        cand_contrib = pd.Series(shap_pos[cand01_idx], index=feature_names).sort_values(key=np.abs, ascending=False)
+        cand_contrib = pd.Series(shap_pos[cand01_idx], index=feature_names).sort_values(
+            key=np.abs, ascending=False
+        )
         for feat, val in cand_contrib.head(5).items():
             arrow = "pushes up" if val > 0 else "pulls down"
             print(f"    - {feat}: {val:+.4f} ({arrow})")
 
     if gold_idx is not None:
         print(f"\n  Why {candidate_ids[gold_idx]} (GOLD) is ranked high:")
-        gold_contrib = pd.Series(shap_pos[gold_idx], index=feature_names).sort_values(key=np.abs, ascending=False)
+        gold_contrib = pd.Series(shap_pos[gold_idx], index=feature_names).sort_values(
+            key=np.abs, ascending=False
+        )
         for feat, val in gold_contrib.head(5).items():
             arrow = "pushes up" if val > 0 else "pulls down"
             print(f"    - {feat}: {val:+.4f} ({arrow})")
 
     if bad_idx is not None:
         print(f"\n  Why {candidate_ids[bad_idx]} (BAD) is ranked low:")
-        bad_contrib = pd.Series(shap_pos[bad_idx], index=feature_names).sort_values(key=np.abs, ascending=False)
+        bad_contrib = pd.Series(shap_pos[bad_idx], index=feature_names).sort_values(
+            key=np.abs, ascending=False
+        )
         for feat, val in bad_contrib.head(5).items():
             arrow = "pushes up" if val > 0 else "pulls down"
             print(f"    - {feat}: {val:+.4f} ({arrow})")
 
     print()
 
+
 # =============================================================================
 # MAIN PIPELINE
 # =============================================================================
+
 
 def main() -> None:
     print("\nOpen-NeoVax -- ML Pipeline -- groupe 07 (B2 TAP)")
@@ -620,7 +740,9 @@ def main() -> None:
     print("\n[1/6] Loading training data (patient_one)...")
     X_train_raw, y_train, feature_names = load_training()
     print(f"  {len(y_train)} candidates  x  {len(feature_names)} features")
-    print(f"  Positives (GOLD/GOOD): {y_train.sum()} | Negatives (BAD/TRAP): {(y_train == 0).sum()}\n")
+    print(
+        f"  Positives (GOLD/GOOD): {y_train.sum()} | Negatives (BAD/TRAP): {(y_train == 0).sum()}\n"
+    )
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train_raw)
@@ -631,12 +753,20 @@ def main() -> None:
     print("[2/6] Comparing models (cross-validation)...")
     print("- CROSS-VALIDATION ACCURACY (5-fold, patient_one)")
     cv_models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=RANDOM_STATE),
-        "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=5, random_state=RANDOM_STATE),
-        "Gradient Boosting": GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=RANDOM_STATE),
+        "Logistic Regression": LogisticRegression(
+            max_iter=1000, random_state=RANDOM_STATE
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+        ),
+        "Gradient Boosting": GradientBoostingClassifier(
+            n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+        ),
     }
     for name, model in cv_models.items():
-        scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring="accuracy")
+        scores = cross_val_score(
+            model, X_train_scaled, y_train, cv=5, scoring="accuracy"
+        )
         print(f"  {name:25s}  {scores.mean():.3f}  (+/- {scores.std():.3f})")
     print()
 
@@ -644,9 +774,13 @@ def main() -> None:
     # 3. Train final models
     # ------------------------------------------------------------------
     print("[3/6] Training final models on full patient_one dataset...")
-    rf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=RANDOM_STATE)
+    rf = RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+    )
     lr = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
-    gb = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=RANDOM_STATE)
+    gb = GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, random_state=RANDOM_STATE
+    )
     rf.fit(X_train_scaled, y_train)
     lr.fit(X_train_scaled, y_train)
     gb.fit(X_train_scaled, y_train)
@@ -661,8 +795,12 @@ def main() -> None:
     imp_perm = importance_permutation(rf, X_train_scaled, y_train, feature_names)
 
     print_importances(imp_rf, "FEATURE IMPORTANCE -- Random Forest (Gini, built-in)")
-    print_importances(imp_lr, "FEATURE IMPORTANCE -- Logistic Regression (coefficients)")
-    print_importances(imp_perm, "FEATURE IMPORTANCE -- Permutation importance (Random Forest)")
+    print_importances(
+        imp_lr, "FEATURE IMPORTANCE -- Logistic Regression (coefficients)"
+    )
+    print_importances(
+        imp_perm, "FEATURE IMPORTANCE -- Permutation importance (Random Forest)"
+    )
 
     # Feature importance plot
     imp_rf.plot(kind="barh", figsize=(10, 6))
@@ -671,13 +809,19 @@ def main() -> None:
     _save_plot(ANALYSIS_DIR / "feature_importance_rf.png")
 
     # Hold-out classification report
-    X_tr, X_te, y_tr, y_te = train_test_split(X_train_scaled, y_train, test_size=0.2, random_state=RANDOM_STATE)
-    rf_ho = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=RANDOM_STATE)
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_train_scaled, y_train, test_size=0.2, random_state=RANDOM_STATE
+    )
+    rf_ho = RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=RANDOM_STATE
+    )
     rf_ho.fit(X_tr, y_tr)
 
     y_pred_te = rf_ho.predict(X_te)
     print("\nClassification Report (hold-out 20%):")
-    print(classification_report(y_te, y_pred_te, target_names=["BAD/TRAP", "GOOD/GOLD"]))
+    print(
+        classification_report(y_te, y_pred_te, target_names=["BAD/TRAP", "GOOD/GOLD"])
+    )
 
     # ------------------------------------------------------------------
     # 5. Validate on patient_zero
@@ -686,8 +830,20 @@ def main() -> None:
     X_zero_raw, ids_zero, labels_zero = load_validation(feature_names)
     X_zero_scaled = scaler.transform(X_zero_raw)
 
-    print_ranking(rf, X_zero_scaled, ids_zero, labels_zero, "FINAL RANKING — Random Forest (patient_zero)")
-    print_ranking(gb, X_zero_scaled, ids_zero, labels_zero, "FINAL RANKING — Gradient Boosting (patient_zero)")
+    print_ranking(
+        rf,
+        X_zero_scaled,
+        ids_zero,
+        labels_zero,
+        "FINAL RANKING — Random Forest (patient_zero)",
+    )
+    print_ranking(
+        gb,
+        X_zero_scaled,
+        ids_zero,
+        labels_zero,
+        "FINAL RANKING — Gradient Boosting (patient_zero)",
+    )
 
     # ------------------------------------------------------------------
     # 6. Bonus analyses
@@ -698,7 +854,16 @@ def main() -> None:
     feature_selection(X_train_scaled, y_train, feature_names, imp_rf)
 
     # Bonus 2 — Visualizations
-    visualizations(rf, X_train_scaled, y_train, X_zero_scaled, ids_zero, feature_names, y_te, y_pred_te)
+    visualizations(
+        rf,
+        X_train_scaled,
+        y_train,
+        X_zero_scaled,
+        ids_zero,
+        feature_names,
+        y_te,
+        y_pred_te,
+    )
 
     # Bonus 3 — Hyperparameter tuning
     hyperparameter_tuning(X_train_scaled, y_train)
