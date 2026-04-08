@@ -101,6 +101,41 @@ def evaluate_random_forest(X, y) -> None:
     print(f"Mean accuracy: {scores.mean():.3f}")
     print(f"Std accuracy: {scores.std():.3f}")
 
+def compute_feature_importance(X, y, feature_names):
+    """Train RandomForest and display feature importance."""
+    model = RandomForestClassifier(
+        n_estimators=200,
+        random_state=42
+    )
+    model.fit(X, y)
+
+    importances = model.feature_importances_
+
+    feature_importance = list(zip(feature_names, importances))
+    feature_importance.sort(key=lambda x: x[1], reverse=True)
+
+    print("\n=== FEATURE IMPORTANCE ===")
+    for name, score in feature_importance:
+        bar = "#" * int(score * 50)
+        print(f"{name:30s} {score:.3f} {bar}")
+
+    def rank_candidates(model, df):
+    """Rank candidates using predicted probabilities."""
+    feature_cols = get_feature_columns(df)
+
+    X = df[feature_cols]
+
+    probs = model.predict_proba(X)[:, 1]
+
+    df = df.copy()
+    df["score"] = probs
+
+    df = df.sort_values(by="score", ascending=False)
+
+    print("\n=== FINAL RANKING (patient_zero) ===")
+    for i, row in enumerate(df.itertuples(), 1):
+        print(f"{i:2d}. {row.candidate_id:10s} {row.score:.3f} {row.label}")
+
 
 def main() -> None:
     patient_one_df = load_scores(PATIENT_ONE_PATH)
@@ -123,6 +158,22 @@ def main() -> None:
 
     evaluate_random_forest(X_train, y_train)
 
+    compute_feature_importance(
+        X_train,
+        y_train,
+        X_train.columns.tolist()
+    )
+
+    # Train final model on all data
+    final_model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(max_iter=1000, random_state=42)),
+    ])
+
+    final_model.fit(X_train, y_train)
+
+    # Ranking on patient_zero
+    rank_candidates(final_model, patient_zero_df)
 
 if __name__ == "__main__":
     main()
