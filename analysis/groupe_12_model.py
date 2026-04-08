@@ -2,6 +2,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
 ANALYSIS_DIR = Path("analysis")
 PATIENT_ONE_PATH = ANALYSIS_DIR / "scores_patient_one.csv"
@@ -68,6 +73,35 @@ def prepare_ml_data(df: pd.DataFrame):
 
     return X, y
 
+def evaluate_logistic_regression(X, y) -> None:
+    """Evaluate a logistic regression model with cross-validation."""
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(max_iter=1000, random_state=42)),
+    ])
+
+    scores = cross_val_score(model, X, y, cv=5, scoring="accuracy")
+
+    print("\n=== LOGISTIC REGRESSION ===")
+    print(f"CV accuracy scores: {scores}")
+    print(f"Mean accuracy: {scores.mean():.3f}")
+    print(f"Std accuracy: {scores.std():.3f}")
+
+def evaluate_random_forest(X, y) -> None:
+    """Evaluate a random forest model with cross-validation."""
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    )
+
+    scores = cross_val_score(model, X, y, cv=5, scoring="accuracy")
+
+    print("\n=== RANDOM FOREST ===")
+    print(f"CV accuracy scores: {scores}")
+    print(f"Mean accuracy: {scores.mean():.3f}")
+    print(f"Std accuracy: {scores.std():.3f}")
+
+
 def main() -> None:
     patient_one_df = load_scores(PATIENT_ONE_PATH)
     patient_zero_df = load_scores(PATIENT_ZERO_PATH)
@@ -84,6 +118,10 @@ def main() -> None:
     print("X shape:", X_train.shape)
     print("y distribution:")
     print(y_train.value_counts())
+
+    evaluate_logistic_regression(X_train, y_train)
+
+    evaluate_random_forest(X_train, y_train)
 
 
 if __name__ == "__main__":
