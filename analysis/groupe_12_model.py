@@ -7,6 +7,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+from scipy.stats import spearmanr
 
 
 ANALYSIS_DIR = Path("analysis")
@@ -196,6 +197,34 @@ def evaluate_real_vs_decoy(model, df, feature_cols):
     print(f"AUC flipped: {auc_flipped:.3f}")
 
 
+def evaluate_ic50_correlation(model, scores_df, raw_df, feature_cols):
+    """Evaluate Spearman correlation between model scores and IC50."""
+
+    # Merge datasets
+    df = scores_df.merge(
+        raw_df[["candidate_id", "ic50_nm"]],
+        on="candidate_id",
+        how="inner"
+    )
+
+    # Keep only REAL candidates
+    df = df[df["label"] == "REAL"]
+
+    X = df[feature_cols]
+
+    # Predict scores
+    probs = model.predict_proba(X)[:, 1]
+
+    ic50 = df["ic50_nm"]
+
+    # Spearman correlation
+    rho, pvalue = spearmanr(probs, ic50)
+
+    print("\n=== IC50 CORRELATION (REAL only) ===")
+    print(f"Spearman rho: {rho:.3f}")
+    print(f"p-value: {pvalue:.3e}")
+
+
 # =====================
 # MAIN
 # =====================
@@ -235,6 +264,15 @@ def main():
     reg.fit(X_ord, y_ord)
 
     rank_regression(reg, df_zero, feature_cols)
+
+    raw_real_df = pd.read_csv("data/patient_real.csv")
+
+    evaluate_ic50_correlation(
+        model,
+        df_real,
+        raw_real_df,
+        feature_cols
+    )
 
 
 if __name__ == "__main__":
