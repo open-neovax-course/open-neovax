@@ -1,14 +1,13 @@
 from pathlib import Path
-import pandas as pd
 
+import pandas as pd
+from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score
-from scipy.stats import spearmanr
-
 
 ANALYSIS_DIR = Path("analysis")
 PATIENT_ONE_PATH = ANALYSIS_DIR / "scores_patient_one.csv"
@@ -19,6 +18,7 @@ PATIENT_REAL_PATH = ANALYSIS_DIR / "scores_patient_real.csv"
 # =====================
 # LOAD & INSPECT
 # =====================
+
 
 def load_scores(csv_path: Path) -> pd.DataFrame:
     return pd.read_csv(csv_path)
@@ -39,6 +39,7 @@ def inspect_dataset(name: str, df: pd.DataFrame) -> None:
 # =====================
 # BINARY CLASSIFICATION
 # =====================
+
 
 def encode_labels_binary(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -66,10 +67,12 @@ def prepare_ml_data(df: pd.DataFrame):
 
 
 def evaluate_logistic_regression(X, y):
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(max_iter=1000, random_state=42)),
-    ])
+    model = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=1000, random_state=42)),
+        ]
+    )
 
     scores = cross_val_score(model, X, y, cv=5)
 
@@ -119,6 +122,7 @@ def rank_candidates(model, df, feature_cols):
 # =====================
 # ORDINAL REGRESSION
 # =====================
+
 
 def encode_labels_ordinal(df):
     df = df.copy()
@@ -174,6 +178,7 @@ def rank_regression(model, df, feature_cols):
 # REAL VS DECOY
 # =====================
 
+
 def evaluate_real_vs_decoy(model, df, feature_cols):
     df = df.copy()
 
@@ -202,9 +207,7 @@ def evaluate_ic50_correlation(model, scores_df, raw_df, feature_cols):
 
     # Merge datasets
     df = scores_df.merge(
-        raw_df[["candidate_id", "ic50_nm"]],
-        on="candidate_id",
-        how="inner"
+        raw_df[["candidate_id", "ic50_nm"]], on="candidate_id", how="inner"
     )
 
     # Keep only REAL candidates
@@ -229,6 +232,7 @@ def evaluate_ic50_correlation(model, scores_df, raw_df, feature_cols):
 # MAIN
 # =====================
 
+
 def main():
     df_one = load_scores(PATIENT_ONE_PATH)
     df_zero = load_scores(PATIENT_ZERO_PATH)
@@ -246,10 +250,12 @@ def main():
     evaluate_random_forest(X_train, y_train)
     compute_feature_importance(X_train, y_train)
 
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(max_iter=1000)),
-    ])
+    model = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=1000)),
+        ]
+    )
     model.fit(X_train, y_train)
 
     rank_candidates(model, df_zero, feature_cols)
@@ -267,12 +273,7 @@ def main():
 
     raw_real_df = pd.read_csv("data/patient_real.csv")
 
-    evaluate_ic50_correlation(
-        model,
-        df_real,
-        raw_real_df,
-        feature_cols
-    )
+    evaluate_ic50_correlation(model, df_real, raw_real_df, feature_cols)
 
 
 if __name__ == "__main__":
