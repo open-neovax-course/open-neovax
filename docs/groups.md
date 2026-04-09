@@ -33,7 +33,7 @@
 | 13 | Essome Ndoumin | Christian | Essome12 | |
 | 13 | Talekeudjeu Goudjou | Morel | Nate380 | |
 | 14 | Rabin | Eliot | mrks2 | |
-| — | Abdelkarim | Yacine | Spyrrale | — |
+| 15 | Abdelkarim | Yacine | Spyrrale | |
 
 ## Module assignments
 
