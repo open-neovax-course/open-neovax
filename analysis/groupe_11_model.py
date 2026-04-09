@@ -233,6 +233,7 @@ def analyse_feature_importance(
     """
     # Fit best model on full training set
     best_model.fit(X_train, y_train)
+    # NOTE: model stays fitted — reused by rank_patient_zero() and analyse_patient_real()
 
     # --- Permutation importance (model-agnostic) ---
     perm = permutation_importance(
@@ -462,6 +463,7 @@ def main() -> None:
     analyse_feature_importance(best_model, best_name, X_train, y_train, feature_cols)
 
     # 4. Final ranking on patient_zero
+    # best_model is already fitted from step 3 (feature importance)
     print()
     print("─── FINAL RANKING (patient_zero) " + "─" * 10)
     rank_patient_zero(best_model, X_zero, df_zero)
