@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+# -----------------------------------------------------------
+# DATA LOADING
+# -----------------------------------------------------------
 
 
 def load_score_matrix(csv_path: Path) -> pd.DataFrame:
@@ -55,6 +54,11 @@ def build_binary_dataset(df: pd.DataFrame) -> pd.DataFrame:
     return work
 
 
+# -----------------------------------------------------------
+# FEATURES
+# -----------------------------------------------------------
+
+
 def get_feature_columns(df: pd.DataFrame) -> list[str]:
     excluded = {
         "candidate_id",
@@ -71,62 +75,30 @@ def get_feature_columns(df: pd.DataFrame) -> list[str]:
         "mut_pos_1based",
     }
 
-    feature_cols = []
-    for col in df.columns:
-        if col in excluded:
-            continue
-        if pd.api.types.is_numeric_dtype(df[col]):
-            feature_cols.append(col)
-
-    return feature_cols
+    return [
+        col
+        for col in df.columns
+        if col not in excluded and pd.api.types.is_numeric_dtype(df[col])
+    ]
 
 
-def evaluate_models(X: pd.DataFrame, y: pd.Series) -> None:
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-    models = {
-        "logistic_regression": Pipeline(
-            steps=[
-                ("imputer", SimpleImputer(strategy="median")),
-                ("scaler", StandardScaler()),
-                ("clf", LogisticRegression(max_iter=2000, random_state=42)),
-            ]
-        ),
-        "random_forest": Pipeline(
-            steps=[
-                ("imputer", SimpleImputer(strategy="median")),
-                (
-                    "clf",
-                    RandomForestClassifier(
-                        n_estimators=200,
-                        random_state=42,
-                        class_weight="balanced",
-                    ),
-                ),
-            ]
-        ),
-    }
-
-    print("\n=== Cross-validation results (accuracy) ===")
-    for name, model in models.items():
-        scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
-        print(f"{name}: mean={scores.mean():.4f} std={scores.std():.4f}")
+# -----------------------------------------------------------
+# MODEL FACTORIES
+# -----------------------------------------------------------
 
 
-def fit_logistic_regression(X: pd.DataFrame, y: pd.Series) -> Pipeline:
-    pipeline = Pipeline(
+def make_logistic_regression() -> Pipeline:
+    return Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
             ("scaler", StandardScaler()),
             ("clf", LogisticRegression(max_iter=2000, random_state=42)),
         ]
     )
-    pipeline.fit(X, y)
-    return pipeline
 
 
-def fit_random_forest(X: pd.DataFrame, y: pd.Series) -> Pipeline:
-    pipeline = Pipeline(
+def make_random_forest() -> Pipeline:
+    return Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
             (
@@ -139,61 +111,127 @@ def fit_random_forest(X: pd.DataFrame, y: pd.Series) -> Pipeline:
             ),
         ]
     )
-    pipeline.fit(X, y)
-    return pipeline
+
+
+def make_gradient_boosting() -> Pipeline:
+    return Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            (
+                "clf",
+                GradientBoostingClassifier(
+                    n_estimators=200,
+                    learning_rate=0.05,
+                    random_state=42,
+                ),
+            ),
+        ]
+    )
+
+
+# -----------------------------------------------------------
+# MODEL COMPARISON
+# -----------------------------------------------------------
+
+
+def evaluate_models(X: pd.DataFrame, y: pd.Series) -> tuple[Pipeline, str]:
+    """
+    Compare models by 5-fold CV and return the best one.
+    """
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    models: dict[str, Pipeline] = {
+        "logistic_regression": make_logistic_regression(),
+        "random_forest": make_random_forest(),
+        "gradient_boosting": make_gradient_boosting(),
+    }
+
+    print("\n=== Cross-validation results (accuracy) ===")
+
+    results: dict[str, tuple[float, Pipeline]] = {}
+    for name, model in models.items():
+        scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
+        mean_score = scores.mean()
+        std_score = scores.std()
+        results[name] = (mean_score, model)
+        print(f"{name}: mean={mean_score:.4f} std={std_score:.4f}")
+
+    best_name = max(results, key=lambda key: results[key][0])
+    best_model = results[best_name][1]
+
+    print(f"\nSelected model: {best_name} (best CV performance)")
+    return best_model, best_name
+
+
+# -----------------------------------------------------------
+# FEATURE IMPORTANCE
+# -----------------------------------------------------------
 
 
 def show_feature_importance(X: pd.DataFrame, y: pd.Series) -> None:
-    print("\n=== Feature importance / coefficients ===")
+    print("\n=== Feature importance ===")
 
-    logreg_pipeline = fit_logistic_regression(X, y)
-    logreg = logreg_pipeline.named_steps["clf"]
-    coef = pd.Series(logreg.coef_[0], index=X.columns)
+    logreg_pipeline = make_logistic_regression()
+    logreg_pipeline.fit(X, y)
+    coef = pd.Series(logreg_pipeline.named_steps["clf"].coef_[0], index=X.columns)
     coef = coef.reindex(coef.abs().sort_values(ascending=False).index)
 
     print("\nTop Logistic Regression coefficients:")
     print(coef.head(10))
 
-    rf_pipeline = fit_random_forest(X, y)
-    rf = rf_pipeline.named_steps["clf"]
-    importances = pd.Series(rf.feature_importances_, index=X.columns).sort_values(
-        ascending=False
-    )
+    rf_pipeline = make_random_forest()
+    rf_pipeline.fit(X, y)
+    importances = pd.Series(
+        rf_pipeline.named_steps["clf"].feature_importances_,
+        index=X.columns,
+    ).sort_values(ascending=False)
 
     print("\nTop Random Forest importances:")
     print(importances.head(10))
 
 
-def rank_patient_zero(train_df: pd.DataFrame, zero_df: pd.DataFrame) -> pd.DataFrame:
-    train_bin = build_binary_dataset(train_df)
-    feature_cols = get_feature_columns(train_bin)
+# -----------------------------------------------------------
+# RANKING
+# -----------------------------------------------------------
 
-    if not feature_cols:
-        raise ValueError("No numeric feature columns found for training.")
 
-    X_train = train_bin[feature_cols]
-    y_train = train_bin["y"]
-
-    model = fit_logistic_regression(X_train, y_train)
-
+def rank_patient_zero(
+    zero_df: pd.DataFrame,
+    feature_cols: list[str],
+    fitted_model: Pipeline,
+) -> pd.DataFrame:
     missing_cols = [col for col in feature_cols if col not in zero_df.columns]
     if missing_cols:
         raise ValueError(f"Missing feature columns in patient_zero: {missing_cols}")
 
     X_zero = zero_df[feature_cols].copy()
+
     zero_rank = zero_df.copy()
-    zero_rank["pred_proba_good"] = model.predict_proba(X_zero)[:, 1]
+    zero_rank["pred_proba_good"] = fitted_model.predict_proba(X_zero)[:, 1]
 
     sort_cols = ["pred_proba_good"]
     ascending = [False]
+
     if "candidate_id" in zero_rank.columns:
         sort_cols.append("candidate_id")
         ascending.append(True)
 
-    zero_rank = zero_rank.sort_values(sort_cols, ascending=ascending).reset_index(drop=True)
+    zero_rank = zero_rank.sort_values(sort_cols, ascending=ascending).reset_index(
+        drop=True
+    )
 
-    keep_cols = [c for c in ["candidate_id", "label", "pred_proba_good"] if c in zero_rank.columns]
+    keep_cols = [
+        col
+        for col in ["candidate_id", "label", "pred_proba_good"]
+        if col in zero_rank.columns
+    ]
     return zero_rank[keep_cols]
+
+
+# -----------------------------------------------------------
+# MAIN
+# -----------------------------------------------------------
 
 
 def main() -> None:
@@ -220,12 +258,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    train_path = Path(args.train_csv)
-    zero_path = Path(args.zero_csv)
-    output_path = Path(args.output_csv)
-
-    train_df = load_score_matrix(train_path)
-    zero_df = load_score_matrix(zero_path)
+    train_df = load_score_matrix(Path(args.train_csv))
+    zero_df = load_score_matrix(Path(args.zero_csv))
 
     train_bin = build_binary_dataset(train_df)
     feature_cols = get_feature_columns(train_bin)
@@ -243,14 +277,21 @@ def main() -> None:
     for col in feature_cols:
         print(f" - {col}")
 
-    evaluate_models(X, y)
+    best_model, best_name = evaluate_models(X, y)
+    best_model.fit(X, y)
+
     show_feature_importance(X, y)
 
-    ranking_df = rank_patient_zero(train_df, zero_df)
+    ranking_df = rank_patient_zero(
+        zero_df=zero_df,
+        feature_cols=feature_cols,
+        fitted_model=best_model,
+    )
 
-    print("\n=== Patient zero ranking ===")
+    print(f"\n=== Final ranking using {best_name} ===")
     print(ranking_df)
 
+    output_path = Path(args.output_csv)
     ranking_df.to_csv(output_path, index=False)
     print(f"\nSaved ranking to: {output_path}")
 
