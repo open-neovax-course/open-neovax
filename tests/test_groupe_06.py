@@ -17,11 +17,13 @@ def _make_candidate(peptide_mut: str = "SLMAFTIAV") -> Candidate:
     )
 
 
-# ---------------------------------------------------------------------------
+# ----------------
 # 1. Nominal tests
-# ---------------------------------------------------------------------------
+# ----------------
 
-# Test pour un peptide avec un C-terminus favorisé (L hydrophobe), doit retourner un score positif
+
+# Test pour un peptide avec un C-terminus favorisé
+# (L hydrophobe), doit retourner un score positif
 def test_nominal_favoured_cterm() -> None:
     """Peptide ending with L (hydrophobic) should get a positive score."""
     name, value = get_score(_make_candidate("SLMAFTIAL"))
@@ -29,7 +31,9 @@ def test_nominal_favoured_cterm() -> None:
     assert isinstance(value, float)
     assert value > 0.0
 
-# Test pour un peptide avec un C-terminus neutre (G), doit retourner un score de 0
+
+# Test pour un peptide avec un C-terminus
+# neutre (G), doit retourner un score de 0
 def test_nominal_neutral_cterm() -> None:
     """Peptide ending with G should get a neutral score."""
     name, value = get_score(_make_candidate("SLMAFTIAG"))
@@ -37,7 +41,9 @@ def test_nominal_neutral_cterm() -> None:
     assert isinstance(value, float)
     assert value == 0.0
 
-# Test pour un peptide avec un C-terminus défavorisé (K chargé), doit retourner un score négatif
+
+# Test pour un peptide avec un C-terminus
+# défavorisé (K chargé), doit retourner un score négatif
 def test_nominal_disfavoured_cterm() -> None:
     """Peptide ending with K (charged) should get a negative score."""
     name, value = get_score(_make_candidate("SLMAFTIAK"))
@@ -46,9 +52,10 @@ def test_nominal_disfavoured_cterm() -> None:
     assert value < 0.0
 
 
-# ---------------------------------------------------------------------------
+# -----------------------
 # 2. Tests de cas limites
-# ---------------------------------------------------------------------------
+# -----------------------
+
 
 # Test pour un peptide d'une seule acide aminé, devrait être traité sans erreur
 def test_single_amino_acid_peptide() -> None:
@@ -58,7 +65,9 @@ def test_single_amino_acid_peptide() -> None:
     assert isinstance(value, float)
     assert value > 0.0
 
-# Test pour un peptide avec des lettres minuscules et des espaces, devrait être normalisé correctement
+
+# Test pour un peptide avec des lettres
+# minuscules et des espaces, devrait être normalisé correctement
 def test_lowercase_and_spaces_are_handled() -> None:
     """Lowercase input with surrounding spaces should be normalized."""
     name, value = get_score(_make_candidate("  slmaftiav  "))
@@ -66,7 +75,9 @@ def test_lowercase_and_spaces_are_handled() -> None:
     assert isinstance(value, float)
     assert value == 1.0
 
-# Test pour un peptide avec un acide aminé non standard (X ou Z), devrait retourner une pénalité
+
+# Test pour un peptide avec un acide aminé
+# non standard (X ou Z), devrait retourner une pénalité
 def test_non_standard_cterm_returns_penalty() -> None:
     """Unknown residues such as X or Z should return the documented penalty."""
     for peptide in ("SLMAFTIAX", "SLMAFTIAZ", "SLMAFTIA*"):
@@ -76,9 +87,10 @@ def test_non_standard_cterm_returns_penalty() -> None:
         assert value == NEUTRAL_PENALTY
 
 
-# ---------------------------------------------------------------------------
+# -------------------------
 # 3. Tests de cas invalides
-# ---------------------------------------------------------------------------
+# -------------------------
+
 
 # Test pour un peptide vide, doit retourner une pénalité
 def test_empty_peptide_returns_penalty() -> None:
@@ -86,6 +98,7 @@ def test_empty_peptide_returns_penalty() -> None:
     assert name == SCORE_NAME
     assert isinstance(value, float)
     assert value == NEUTRAL_PENALTY
+
 
 # Test pour un peptide avec valeur None, doit retourner une pénalité
 def test_none_peptide_returns_penalty(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -95,6 +108,7 @@ def test_none_peptide_returns_penalty(monkeypatch: pytest.MonkeyPatch) -> None:
     assert name == SCORE_NAME
     assert isinstance(value, float)
     assert value == NEUTRAL_PENALTY
+
 
 # Test pour un peptide avec une valeur entière, doit retourner une pénalité
 def test_integer_peptide_returns_penalty(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -106,9 +120,10 @@ def test_integer_peptide_returns_penalty(monkeypatch: pytest.MonkeyPatch) -> Non
     assert value == NEUTRAL_PENALTY
 
 
-# ---------------------------------------------------------------------------
+# -------------------
 # 4. Tests de contrat
-# ---------------------------------------------------------------------------
+# -------------------
+
 
 # Vérification que la fonction retourne toujours un tuple (str, float)
 @pytest.mark.parametrize(

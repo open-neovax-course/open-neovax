@@ -40,7 +40,8 @@ SCORE_NAME = "B_proteasome_cterm"
 # Les valeurs sont des scores qualitatifs biologiquement motivés :
 #    +1.0  fortement favorisé  (hydrophobe / aromatique)
 #    0.0   neutre
-#    -1.0  défavorisé         (les résidus chargés sont rarement présents à la fin du C-term)
+#    -1.0  défavorisé
+#    (les résidus chargés sont rarement présents à la fin du C-term)
 CTERM_PREFERENCE: dict[str, float] = {
     # Résidus fortement favorisés — hydrophobes / aromatiques
     "L": 1.0,
@@ -74,11 +75,13 @@ NEUTRAL_PENALTY: float = -0.5
 # Alphabet standard des acides aminés (codes à une lettre)
 VALID_AMINO_ACIDS: frozenset[str] = frozenset(CTERM_PREFERENCE.keys())
 
+
 # Fonction principale pour obtenir le score du peptide
 def get_score(candidate: Candidate) -> tuple[str, float]:
     """Compute a proteasome C-terminal plausibility score."""
     score = _compute_cterm_score(candidate)
     return (SCORE_NAME, float(score))
+
 
 # Fonction interne pour extraire le score du C-terminal
 def _compute_cterm_score(candidate: Candidate) -> float:
@@ -90,9 +93,10 @@ def _compute_cterm_score(candidate: Candidate) -> float:
     cterm = _get_cterm(peptide)
     if cterm is None:
         return NEUTRAL_PENALTY
-    
+
     # Récupère le score pour le C-terminal (AA du peptide)
     return CTERM_PREFERENCE.get(cterm, NEUTRAL_PENALTY)
+
 
 # Fonction interne pour extraire le peptide muté
 def _extract_peptide(candidate: Candidate) -> str | None:
@@ -110,6 +114,7 @@ def _extract_peptide(candidate: Candidate) -> str | None:
         return None
 
     return peptide
+
 
 # Fonction pour obtenir le C-terminal du peptide
 def _get_cterm(peptide: str) -> str | None:
