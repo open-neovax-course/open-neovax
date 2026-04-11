@@ -11,23 +11,23 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-# -----------------------------------------------------------
-# DATA LOADING
-# -----------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------
+# CHARGEMENT DES DONNEES
+# ---------------------------------------------------------------------------------------------------------
 
-
+# Cette fonction charge le fichier CSV contenant les données du patient
 def load_score_matrix(csv_path: Path) -> pd.DataFrame:
     if not csv_path.exists():
         raise FileNotFoundError(f"CSV not found: {csv_path}")
     return pd.read_csv(csv_path)
 
-
+# Normalise le label, c'est à dire le met en majuscules
 def normalize_label(value: object) -> str:
     if value is None:
         return ""
     return str(value).strip().upper()
 
-
+# Cette fonction crée un dataset binaire, où "GOLD" et "GOOD" sont 1, et "BAD" et "TRAP" sont 0.
 def build_binary_dataset(df: pd.DataFrame) -> pd.DataFrame:
     """
     Keep only:
@@ -55,10 +55,10 @@ def build_binary_dataset(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -----------------------------------------------------------
-# FEATURES
+# # EXTRACTION DES FEATURES
 # -----------------------------------------------------------
 
-
+# Cette fonction récupère les colonnes de features numériques dans le DataFrame
 def get_feature_columns(df: pd.DataFrame) -> list[str]:
     excluded = {
         "candidate_id",
@@ -83,10 +83,10 @@ def get_feature_columns(df: pd.DataFrame) -> list[str]:
 
 
 # -----------------------------------------------------------
-# MODEL FACTORIES
+# CREATION DES MODELES
 # -----------------------------------------------------------
 
-
+# Fonction qui crée un modèle de régression logistique
 def make_logistic_regression() -> Pipeline:
     return Pipeline(
         steps=[
@@ -96,7 +96,7 @@ def make_logistic_regression() -> Pipeline:
         ]
     )
 
-
+# Fonction qui crée un modèle Random Forest
 def make_random_forest() -> Pipeline:
     return Pipeline(
         steps=[
@@ -112,7 +112,7 @@ def make_random_forest() -> Pipeline:
         ]
     )
 
-
+# Fonction qui crée un modèle Gradient Boosting
 def make_gradient_boosting() -> Pipeline:
     return Pipeline(
         steps=[
@@ -131,10 +131,10 @@ def make_gradient_boosting() -> Pipeline:
 
 
 # -----------------------------------------------------------
-# MODEL COMPARISON
+# MODELE COMPARAISON
 # -----------------------------------------------------------
 
-
+# Cette fonction évalue les modèles en utilisant la validation croisée
 def evaluate_models(X: pd.DataFrame, y: pd.Series) -> tuple[Pipeline, str]:
     """
     Compare models by 5-fold CV and return the best one.
@@ -165,10 +165,10 @@ def evaluate_models(X: pd.DataFrame, y: pd.Series) -> tuple[Pipeline, str]:
 
 
 # -----------------------------------------------------------
-# FEATURE IMPORTANCE
+# IMPORTANCE DES FEATURES
 # -----------------------------------------------------------
 
-
+# Cette fonction affiche l'importance des features
 def show_feature_importance(X: pd.DataFrame, y: pd.Series) -> None:
     print("\n=== Feature importance ===")
 
@@ -192,10 +192,10 @@ def show_feature_importance(X: pd.DataFrame, y: pd.Series) -> None:
 
 
 # -----------------------------------------------------------
-# RANKING
+# RANKING DES PATIENTS
 # -----------------------------------------------------------
 
-
+# Cette fonction génère un classement des candidats pour patient_zero
 def rank_patient_zero(
     zero_df: pd.DataFrame,
     feature_cols: list[str],
@@ -233,7 +233,7 @@ def rank_patient_zero(
 # MAIN
 # -----------------------------------------------------------
 
-
+#fonction principale
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Group 06 ML model for Open-NeoVax score matrices"
@@ -258,15 +258,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    #chargement de donné
     train_df = load_score_matrix(Path(args.train_csv))
     zero_df = load_score_matrix(Path(args.zero_csv))
 
+    #preparation des donné
     train_bin = build_binary_dataset(train_df)
     feature_cols = get_feature_columns(train_bin)
 
     if not feature_cols:
         raise ValueError("No usable numeric feature columns found in training CSV.")
 
+    #selection de feature
     X = train_bin[feature_cols]
     y = train_bin["y"]
 
@@ -277,11 +280,13 @@ def main() -> None:
     for col in feature_cols:
         print(f" - {col}")
 
+    #evaluation des modeles
     best_model, best_name = evaluate_models(X, y)
     best_model.fit(X, y)
 
     show_feature_importance(X, y)
 
+    #affichage de classement
     ranking_df = rank_patient_zero(
         zero_df=zero_df,
         feature_cols=feature_cols,
@@ -291,6 +296,7 @@ def main() -> None:
     print(f"\n=== Final ranking using {best_name} ===")
     print(ranking_df)
 
+    #sauveguard de classement
     output_path = Path(args.output_csv)
     ranking_df.to_csv(output_path, index=False)
     print(f"\nSaved ranking to: {output_path}")
