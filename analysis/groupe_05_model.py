@@ -1,10 +1,9 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.inspection import permutation_importance
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.preprocessing import StandardScaler
 
 # 1. LOAD DATA
 
@@ -40,8 +39,12 @@ X_test_scaled = scaler.transform(X_test)
 
 models = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-    "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42),
-    "Gradient Boosting": GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=42),
+    "Random Forest": RandomForestClassifier(
+        n_estimators=100, max_depth=5, random_state=42
+    ),
+    "Gradient Boosting": GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, random_state=42
+    ),
 }
 
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -49,14 +52,10 @@ results = {}
 
 for name, model in models.items():
     scores = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring="accuracy")
-    results[name] = {
-        'model': model,
-        'mean_acc': scores.mean(),
-        'std_acc': scores.std()
-    }
+    results[name] = {"model": model, "mean_acc": scores.mean(), "std_acc": scores.std()}
 
-best_name = max(results, key=lambda x: results[x]['mean_acc'])
-best_model = results[best_name]['model']
+best_name = max(results, key=lambda x: results[x]["mean_acc"])
+best_model = results[best_name]["model"]
 best_model.fit(X_train_scaled, y_train)
 
 print("=" * 60)
@@ -105,7 +104,6 @@ imp_perm = imp_perm.sort_values(ascending=False)
 
 for i, (feat, imp) in enumerate(imp_perm.head(10).items(), 1):
     print(f"  {i:2d}. {feat:35s}  {imp:.3f}")
-
 
 
 # 6. FINAL RANKING
