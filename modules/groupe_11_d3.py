@@ -81,7 +81,9 @@ def _validate_mutation_in_window(
     # For single-substitution candidates, WT and MUT must differ at exactly
     # one position.
     diff_positions = [
-        i for i, (aa_wt, aa_mut) in enumerate(zip(peptide_wt, peptide_mut)) if aa_wt != aa_mut
+        i
+        for i, (aa_wt, aa_mut) in enumerate(zip(peptide_wt, peptide_mut))
+        if aa_wt != aa_mut
     ]
     if len(diff_positions) != 1:
         return False
