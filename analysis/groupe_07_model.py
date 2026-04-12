@@ -258,7 +258,8 @@ def feature_selection(
             scoring="accuracy",
         )
         print(
-            f"  {label:15s} ({k:2d} features)  acc = {scores.mean():.3f} +/- {scores.std():.3f}"
+            f"  {label:15s} ({k:2d} features) "
+            f"acc = {scores.mean():.3f} +/- {scores.std():.3f}"
         )
     print()
 
@@ -342,14 +343,17 @@ def hyperparameter_tuning(X_scaled: np.ndarray, y: pd.Series) -> None:
             mean = scores.mean()
             marker = "  <-- best so far" if mean > best_score else ""
             print(
-                f"  n_estimators={n_est:3d}  max_depth={str(depth) if depth else 'None':4s}  acc={mean:.3f} +/- {scores.std():.3f}{marker}"
+                f"  n_estimators={n_est:3d}"
+                f"  max_depth={str(depth) if depth else 'None':4s} "
+                f" acc={mean:.3f} +/- {scores.std():.3f}{marker}"
             )
             if mean > best_score:
                 best_score = mean
                 best_params = {"n_estimators": n_est, "max_depth": depth}
 
     print(
-        f"\n  Best accuracy: {best_score:.3f} -> Beat 90%? {'YES' if best_score >= 0.90 else 'NOT YET'}"
+        f"\n  Best accuracy: {best_score:.3f} -> Beat 90%?"
+        f" {'YES' if best_score >= 0.90 else 'NOT YET'}"
     )
     print(f"  Best params  : {best_params}\n")
 
@@ -381,9 +385,8 @@ def ordinal_regression(
     print(f"  Candidates (all labels): {len(y_ord)}")
     print(f"  Label distribution     : {y_ord.value_counts().sort_index().to_dict()}")
     print(f"  MAE (5-fold CV)        : {mae:.3f}  (scale: 0=TRAP ... 4=GOLD)")
-    print(
-        f"  {'Good result: < 0.5 grade off.' if mae < 0.5 else 'Moderate result: consider tuning.'}\n"
-    )
+    grade_msg = "Good result: < 0.5 grade off." if mae < 0.5 else "Moderate result."
+    print(f"  {grade_msg}\n")
 
     reg.fit(X_ord_scaled, y_ord)
     preds_train = reg.predict(X_ord_scaled)
@@ -393,8 +396,11 @@ def ordinal_regression(
     print(f"  {'Actual':10s}  {'Predicted':10s}  {'Score':>5s}  {'Error':>6s}")
     print("  " + "-" * 40)
     for actual, pred in list(zip(y_ord, preds_train))[:10]:
+        actual_label = inv_map.get(int(round(actual)), "?")
+        pred_label = inv_map.get(int(round(pred)), "?")
         print(
-            f"  {inv_map.get(int(round(actual)), '?'):10s}  {inv_map.get(int(round(pred)), '?'):10s}  {pred:5.2f}  {abs(actual - pred):6.2f}"
+            f"  {actual_label:10s}  {pred_label:10s} "
+            f"{pred:5.2f}  {abs(actual - pred):6.2f}"
         )
 
     # Ordinal ranking on patient_zero
@@ -499,7 +505,8 @@ def evaluate_patient_real(
         ax.set_xlabel("Pipeline RF score (higher = more likely GOOD/GOLD)")
         ax.set_ylabel("Experimental IC50 (nM, lower = stronger binder)")
         ax.set_title(
-            f"Pipeline score vs IC50 — patient_real\nSpearman rho = {rho_rf:+.3f}  (p = {p_rf:.4f})"
+            f"Pipeline score vs IC50 — patient_real\n"
+            f"Spearman rho = {rho_rf:+.3f}  (p = {p_rf:.4f})"
         )
         ax.grid(True, alpha=0.3)
         _save_plot(ANALYSIS_DIR / "patient_real_spearman.png")
@@ -542,20 +549,26 @@ def evaluate_patient_real(
         if rho < 0 and p < 0.05:
             print(f"  rho = {rho:+.3f} (p={p:.4f}) — significant negative correlation.")
             print(
-                "  Higher pipeline score -> lower IC50 -> stronger binder. Pipeline is biologically valid."
+                "  Higher pipeline score -> lower IC50 -> stronger binder.",
+                "Pipeline is biologically valid.",
             )
         elif p >= 0.05:
             print(
-                f"  rho = {rho:+.3f} (p={p:.4f}) — no significant correlation with IC50."
+                f"  rho = {rho:+.3f} (p={p:.4f}) \n"
+                f"-> No significant correlation with IC50."
             )
             print("  Expected: our modules are proxies, not affinity predictors.")
         else:
             print(f"  rho = {rho:+.3f} (p={p:.4f}) — unexpected direction.")
     if "auc_rf" in results:
         auc_val = results["auc_rf"]
-        print(
-            f"\n  AUC = {auc_val:.3f} — {'pipeline clearly separates REAL from DECOY.' if auc_val >= 0.80 else 'partial separation.' if auc_val >= 0.65 else 'weak discrimination.'}"
-        )
+        if auc_val >= 0.80:
+            sep_msg = "pipeline clearly separates REAL from DECOY."
+        elif auc_val >= 0.65:
+            sep_msg = "partial separation."
+        else:
+            sep_msg = "weak discrimination."
+        print(f"\n  AUC = {auc_val:.3f} — {sep_msg}")
 
     # Save table
     out_csv = ANALYSIS_DIR / "patient_real_evaluation.csv"
@@ -734,9 +747,9 @@ def main() -> None:
     print("\n[1/6] Loading training data (patient_one)...")
     X_train_raw, y_train, feature_names = load_training()
     print(f"  {len(y_train)} candidates  x  {len(feature_names)} features")
-    print(
-        f"  Positives (GOLD/GOOD): {y_train.sum()} | Negatives (BAD/TRAP): {(y_train == 0).sum()}\n"
-    )
+    pos = y_train.sum()
+    neg = (y_train == 0).sum()
+    print(f"  Positives (GOLD/GOOD): {pos} | Negatives (BAD/TRAP): {neg}\n")
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train_raw)
