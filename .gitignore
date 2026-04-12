@@ -34,7 +34,7 @@ build/
 *.egg-info/
 
 # Generated analysis files (re-generate with: python analysis/score_analysis.py --generate)
-analysis/scores_*.csv
+analysis/*.csv
 analysis/model_weights.json
 analysis/*.png
 analysis/patient_real_evaluation.csv
