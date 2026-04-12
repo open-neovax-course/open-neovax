@@ -5,3 +5,5 @@ ruff
 black
 scikit-learn
 matplotlib
+shap
+scipy
