@@ -70,3 +70,15 @@ def test_exposed_mutation_loss_decreases_score_vs_non_exposed_change():
     _, exposed_loss = get_score(_make_candidate("SLMAFTIAV", "SLMAGTIAV", 5))
     _, non_exposed_change = get_score(_make_candidate("SSMAGTIAV", "SLMAGTIAV", 2))
     assert exposed_loss < non_exposed_change
+
+
+def test_none_wt_returns_base_score_without_crash():
+    candidate = Candidate(
+        candidate_id="TEST_02",
+        peptide_wt=None,  # type: ignore[arg-type]
+        peptide_mut="SLMAFTIAV",
+        mut_pos_1based=5,
+    )
+
+    _, score = get_score(candidate)
+    assert score == pytest.approx(0.375)

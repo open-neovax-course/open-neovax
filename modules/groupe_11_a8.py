@@ -149,6 +149,10 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
 
     # 2. Compute the score using your logic
     base_score = _tcr_contact_score(peptide_mut)
+
+    if not isinstance(peptide_wt, str) or not isinstance(peptide_mut, str):
+        return (SCORE_NAME, base_score)
+
     impact_delta = _mutation_impact_delta(peptide_wt, peptide_mut)
     score_value = base_score + IMPACT_WEIGHT * impact_delta
     score_value = max(0.0, min(1.0, score_value))
