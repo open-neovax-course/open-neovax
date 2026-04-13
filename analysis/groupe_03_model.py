@@ -108,6 +108,7 @@ def generate_score_matrix(patient_file: str = "patient_one.csv") -> None:
 #  See docs/ml-guide.md for the full guide and issue #39 on GitHub.
 # ══════════════════════════════════════════════════════════════════════
 
+
 def load_data():
     """
     Load the data from the csv files and labelised it.
@@ -126,8 +127,9 @@ def load_data():
 
     # Fill missing values with 0
     X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
-    
+
     return X, y
+
 
 def train_and_evaluate():
     """Placeholder — see docs/ml-guide.md for instructions."""
