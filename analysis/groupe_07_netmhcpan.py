@@ -271,6 +271,9 @@ def plot_comparison(df: pd.DataFrame, suffix: str = "") -> None:
         "BAD": "#3498db",
         "TRAP": "#9b59b6",
         "MEDIOCRE": "#95a5a6",
+        "REAL": "#2ecc71",
+        "DECOY": "#e74c3c",
+        "UNKNOWN": "#95a5a6",
     }
     rho, p = spearmanr(df["pipeline_rank"], df["netmhcpan_rank"])
 
