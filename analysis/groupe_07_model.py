@@ -297,7 +297,7 @@ def visualizations(
     ax.set_yticklabels(feature_names, fontsize=8)
     ax.set_title("Score heatmap (patient_zero)")
     plt.colorbar(im, ax=ax)
-    _save_plot(ANALYSIS_DIR / "score_heatmap.png")
+    _save_plot(ANALYSIS_DIR / "groupe07_score_heatmap.png")
 
     # ROC curve (cross-validated on patient_one)
     y_proba_cv = cross_val_predict(
@@ -312,7 +312,7 @@ def visualizations(
     ax.set_ylabel("True Positive Rate")
     ax.set_title("ROC Curve (cross-validated, patient_one)")
     ax.legend()
-    _save_plot(ANALYSIS_DIR / "roc_curve.png")
+    _save_plot(ANALYSIS_DIR / "groupe07_roc_curve.png")
 
     # Confusion matrix (hold-out)
     cm = confusion_matrix(y_te, y_pred)
@@ -321,7 +321,7 @@ def visualizations(
         confusion_matrix=cm, display_labels=["BAD/TRAP", "GOOD/GOLD"]
     ).plot(ax=ax, colorbar=False)
     ax.set_title("Confusion Matrix (hold-out 20%)")
-    _save_plot(ANALYSIS_DIR / "confusion_matrix.png")
+    _save_plot(ANALYSIS_DIR / "groupe07_confusion_matrix.png")
 
 
 # =============================================================================
@@ -508,7 +508,7 @@ def evaluate_patient_real(
             f"Pipeline score vs IC50 — patient_real\nSpearman rho = {rho_rf:+.3f}  (p = {p_rf:.4f})"
         )
         ax.grid(True, alpha=0.3)
-        _save_plot(ANALYSIS_DIR / "patient_real_spearman.png")
+        _save_plot(ANALYSIS_DIR / "groupe07_patient_real_spearman.png")
 
     print()
 
@@ -564,7 +564,7 @@ def evaluate_patient_real(
         )
 
     # Save table
-    out_csv = ANALYSIS_DIR / "patient_real_evaluation.csv"
+    out_csv = ANALYSIS_DIR / "groupe07_patient_real_evaluation.csv"
     df.to_csv(out_csv, index=False)
     print(f"\n  Full table saved -> {out_csv}\n")
     return results
@@ -621,7 +621,7 @@ def shap_analysis(model, X_test, feature_names, candidate_ids, labels_raw) -> No
     shap.summary_plot(shap_pos, X_df, feature_names=feature_names, show=False)
     plt.title("SHAP Summary — patient_zero")
     plt.tight_layout()
-    out_summary = ANALYSIS_DIR / "shap_summary.png"
+    out_summary = ANALYSIS_DIR / "groupe07_shap_summary.png"
     plt.savefig(out_summary, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  Plot saved -> {out_summary}")
@@ -680,7 +680,7 @@ def shap_analysis(model, X_test, feature_names, candidate_ids, labels_raw) -> No
             )
 
         plt.tight_layout()
-        out_path = ANALYSIS_DIR / f"shap_waterfall_{tag}.png"
+        out_path = ANALYSIS_DIR / f"groupe07_shap_waterfall_{tag}.png"
         plt.savefig(out_path, dpi=150, bbox_inches="tight")
         plt.close(fig)  # Fermer la figure spécifique
         print(f"  Plot saved -> {out_path}")
@@ -806,7 +806,7 @@ def main() -> None:
     imp_rf.plot(kind="barh", figsize=(10, 6))
     plt.xlabel("Importance")
     plt.title("Feature importance -- Random Forest (groupe 07)")
-    _save_plot(ANALYSIS_DIR / "feature_importance_rf.png")
+    _save_plot(ANALYSIS_DIR / "groupe07_feature_importance_rf.png")
 
     # Hold-out classification report
     X_tr, X_te, y_tr, y_te = train_test_split(

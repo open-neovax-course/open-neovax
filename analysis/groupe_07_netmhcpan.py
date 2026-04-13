@@ -295,7 +295,7 @@ def plot_comparison(df: pd.DataFrame, suffix: str = "") -> None:
     )
     ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
-    _save_plot(ANALYSIS_DIR / f"netmhcpan_comparison_{suffix}.png")
+    _save_plot(ANALYSIS_DIR / f"groupe07_netmhcpan_comparison_{suffix}.png")
 
     df_s = df.sort_values("rank_delta")
     colours = ["#e74c3c" if d > 0 else "#3498db" for d in df_s["rank_delta"]]
@@ -306,7 +306,7 @@ def plot_comparison(df: pd.DataFrame, suffix: str = "") -> None:
     ax.set_ylabel("Rank delta (NetMHCpan − Pipeline)")
     ax.set_title(f"Rank differences — {suffix} (Red = we rank higher)")
     plt.xticks(rotation=45, ha="right", fontsize=8)
-    _save_plot(ANALYSIS_DIR / f"netmhcpan_delta_{suffix}.png")
+    _save_plot(ANALYSIS_DIR / f"groupe07_netmhcpan_delta_{suffix}.png")
 
 
 # =============================================================================
@@ -342,7 +342,7 @@ def main() -> None:
     print(f"\n  Spearman rho = {rho:+.3f} (p={p:.4f}) n={len(df_zero)}")
     print_disagreements(df_zero)
 
-    df_zero.to_csv(ANALYSIS_DIR / "benchmark_patient_zero.csv", index=False)
+    df_zero.to_csv(ANALYSIS_DIR / "groupe07_benchmark_patient_zero.csv", index=False)
     plot_comparison(df_zero, "patient_zero")
 
     # patient_real (bonus)
@@ -366,7 +366,7 @@ def main() -> None:
             print(f"\n  Spearman rho = {rho_r:+.3f} (p={p_r:.4f}) n={len(df_real)}")
             print_disagreements(df_real)
             spearman_ic50(df_real)
-            df_real.to_csv(ANALYSIS_DIR / "benchmark_patient_real.csv", index=False)
+            df_real.to_csv(ANALYSIS_DIR / "groupe07_benchmark_patient_real.csv", index=False)
             plot_comparison(df_real, "patient_real")
 
     print("\n" + "=" * 60)

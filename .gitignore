@@ -34,10 +34,11 @@ build/
 *.egg-info/
 
 # Generated analysis files (re-generate with: python analysis/score_analysis.py --generate)
-analysis/*.csv
+analysis/scores_*.csv
 analysis/model_weights.json
 analysis/*.png
 analysis/patient_real_evaluation.csv
+analysis/groupe07_*.csv
 
 # Teacher notes (private, never commit)
 _teacher/
