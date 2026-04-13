@@ -369,7 +369,9 @@ def main() -> None:
             print(f"\n  Spearman rho = {rho_r:+.3f} (p={p_r:.4f}) n={len(df_real)}")
             print_disagreements(df_real)
             spearman_ic50(df_real)
-            df_real.to_csv(ANALYSIS_DIR / "groupe07_benchmark_patient_real.csv", index=False)
+            df_real.to_csv(
+                ANALYSIS_DIR / "groupe07_benchmark_patient_real.csv", index=False
+            )
             plot_comparison(df_real, "patient_real")
 
     print("\n" + "=" * 60)
