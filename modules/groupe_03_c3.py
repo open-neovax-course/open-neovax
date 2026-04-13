@@ -43,7 +43,12 @@ SCORE_NAME = "C_anchoring_secondary"
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
 
-_score_weights = {(0, "P1"): 0.45, (2, "P3"): 0.3, (6, "P7"): 0.15}
+"""
+The determination of these weights was predominantly informed by the methodology
+described in doi: 10.1186/1745-7580-6-12,
+with minor adjustments derived from doi: 10.1093/gigascience/gix017.
+"""
+_score_weights = {(0, "P1"): 0.75, (2, "P3"): 0.15, (4, "P5"): 0.1}
 
 
 def _secondary_anchoring(pep: str) -> float:
@@ -124,7 +129,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     peptide = candidate.peptide_mut
 
-    if len(peptide) < 7:
+    if type(peptide) is not str or len(peptide) < 5:
         return (SCORE_NAME, 0.0)
 
     score_value = _secondary_anchoring(peptide.upper())
