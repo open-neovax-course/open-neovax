@@ -35,12 +35,12 @@ Requirements
 
 from __future__ import annotations
 
-import pandas as pd
 import argparse
 import csv
 import sys
 from pathlib import Path
-from scipy.stats import spearmanr
+
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
