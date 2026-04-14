@@ -221,9 +221,7 @@ def analyse_patient_zero() -> None:
         f"  {'candidate':<10s}  {'our':>4s}  {'netmhcp':>7s}  "
         f"{'%rank':>7s}  {'bind':>4s}  label"
     )
-    print(
-        header
-    )
+    print(header)
     print(f"  {'-' * 10}  {'-' * 4}  {'-' * 7}  {'-' * 7}  {'-' * 4}  ---------")
     ordered = df.reindex(df["delta"].abs().sort_values(ascending=False).index)
     for _, r in ordered.iterrows():
