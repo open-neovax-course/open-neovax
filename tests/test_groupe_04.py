@@ -185,6 +185,23 @@ def test_invalid_amino_acids_return_neutral_score(peptide_wt, peptide_mut):
     assert value == 0.0
 
 
+def test_negative_delta_when_mutation_degrades_binding():
+    """L→D at P2 turns the best anchor residue (+2.0) into the worst (−2.5),
+    producing a delta of −4.5 (score_mut=1.90, score_wt=6.40)."""
+    candidate = Candidate(
+        candidate_id="TEST_NEG",
+        peptide_wt="LLFLLVLLV",
+        peptide_mut="LDFLLVLLV",
+        mut_pos_1based=2,
+    )
+
+    name, value = groupe_04.get_score(candidate)
+
+    assert name == groupe_04.SCORE_NAME
+    assert value < 0
+    assert math.isclose(value, -4.5, abs_tol=1e-9)
+
+
 def test_lowercase_peptides_are_accepted():
     candidate = Candidate(
         candidate_id="TEST_LOWER",

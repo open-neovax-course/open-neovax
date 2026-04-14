@@ -1,18 +1,16 @@
-"""
-A8 — TCR contact potential (Group 11)
-=====================================
-
-Scores how visible the mutated peptide may be to the T cell receptor.
-It looks at positions P4-P7 of the mutated peptide.
-
-Higher scores mean more visible residues at these positions.
-Lower scores mean less visible residues at these positions.
+"""Group 04 — C6 scoring module.
+Hypothesis: A mutant peptide is a better neoepitope candidate if it binds
+HLA-A*02:01 strongly in absolute terms — i.e., each position carries a
+favorable amino acid according to the PSSM, independent of the wild-type
+sequence.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pandas as pd
 
 # ──────────────────────────────────────────────────────────────────────
 # Import the Candidate type.
@@ -35,33 +33,8 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "A_tcr_contact_potential"
-
-TCR_SALIENCY = {
-    "W": 1.0,
-    "F": 0.9,
-    "Y": 0.9,
-    "K": 0.8,
-    "R": 0.8,
-    "D": 0.7,
-    "E": 0.7,
-    "H": 0.6,
-    "N": 0.5,
-    "Q": 0.5,
-    "M": 0.4,
-    "L": 0.3,
-    "I": 0.3,
-    "V": 0.2,
-    "T": 0.2,
-    "S": 0.2,
-    "C": 0.2,
-    "P": 0.1,
-    "A": 0.1,
-    "G": 0.0,
-}
-
-TCR_POSITIONS = [3, 4, 5, 6]
-IMPACT_WEIGHT = 0.2
+SCORE_NAME = "C_binding_quality"
+REQUIRED_PSSM_COLUMNS = [f"P{i}" for i in range(1, 10)]
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -71,48 +44,62 @@ IMPACT_WEIGHT = 0.2
 # You can define as many internal functions as you need.
 # They will never be called by the pipeline.
 # By convention, prefix them with _ to indicate they are private.
-
-
-def _tcr_contact_score(peptide: str) -> float:
-    """Compute average saliency at TCR-exposed positions P4-P7."""
-    if not peptide or len(peptide) < 8:
-        return 0.0
-
-    peptide = peptide.upper()
-    total = sum(TCR_SALIENCY.get(peptide[i], 0.0) for i in TCR_POSITIONS)
-    return total / len(TCR_POSITIONS)
-
-
-def _single_substitution_index(peptide_wt: str, peptide_mut: str) -> int | None:
-    """Return index of the unique substitution, else None."""
-    if not peptide_wt or not peptide_mut:
-        return None
-    if len(peptide_wt) != len(peptide_mut):
+def _load_pssm() -> pd.DataFrame | None:
+    """Load and validate the HLA-A*02:01 PSSM used for delta binding."""
+    try:
+        pssm = pd.read_csv(DATA_DIR / "hla_pssm_A0201.csv", index_col=0)
+    except Exception:
         return None
 
-    diff_positions = [
-        i
-        for i, (aa_wt, aa_mut) in enumerate(
-            zip(peptide_wt.upper(), peptide_mut.upper())
+    if not isinstance(pssm, pd.DataFrame) or pssm.empty or not pssm.index.is_unique:
+        return None
+
+    missing_columns = [col for col in REQUIRED_PSSM_COLUMNS if col not in pssm.columns]
+    if missing_columns:
+        return None
+
+    try:
+        pssm.loc[:, REQUIRED_PSSM_COLUMNS] = pssm.loc[:, REQUIRED_PSSM_COLUMNS].apply(
+            pd.to_numeric
         )
-        if aa_wt != aa_mut
-    ]
-    if len(diff_positions) != 1:
+    except Exception:
         return None
-    return diff_positions[0]
+
+    return pssm
 
 
-def _mutation_impact_delta(peptide_wt: str, peptide_mut: str) -> float:
-    """Return saliency change for a single exposed substitution, else 0."""
-    mut_index = _single_substitution_index(peptide_wt, peptide_mut)
-    if mut_index is None or mut_index not in TCR_POSITIONS:
-        return 0.0
+def _normalize_peptide(peptide: object, pssm: pd.DataFrame | None) -> str | None:
+    """Return a cleaned 9-mer peptide accepted by the PSSM, else None."""
+    if not isinstance(pssm, pd.DataFrame) or not isinstance(peptide, str):
+        return None
 
-    peptide_wt = peptide_wt.upper()
-    peptide_mut = peptide_mut.upper()
-    wt_saliency = TCR_SALIENCY.get(peptide_wt[mut_index], 0.0)
-    mut_saliency = TCR_SALIENCY.get(peptide_mut[mut_index], 0.0)
-    return mut_saliency - wt_saliency
+    peptide = peptide.strip().upper()
+    if len(peptide) != 9:
+        return None
+
+    if not all(aa in pssm.index for aa in peptide):
+        return None
+
+    return peptide
+
+
+def _pssm_score(peptide: str, pssm: pd.DataFrame) -> float:
+    """Compute the raw PSSM score for a validated 9-mer peptide."""
+    total = 0.0
+    for pos, aa in enumerate(peptide, start=1):
+        column = f"P{pos}"
+        try:
+            total += float(pssm.loc[aa, column])
+        except (TypeError, ValueError):
+            return 0.0
+    return total
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  LOCAL CACHE
+# ══════════════════════════════════════════════════════════════════════
+
+_PSSM = _load_pssm()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -121,12 +108,7 @@ def _mutation_impact_delta(peptide_wt: str, peptide_mut: str) -> float:
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
-    """Compute the score for a given candidate.
-
-    This is THE ONLY FUNCTION that the pipeline calls.
-    It must ALWAYS return a tuple (str, float):
-      - str  : the unique name of your score
-      - float : the computed value (not NaN, not inf)
+    """Compute how good does mutated peptide bind (more is better)
 
     Parameters
     ----------
@@ -143,19 +125,17 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-    # 1. Get the sequence to analyze
-    peptide_mut = candidate.peptide_mut
-    peptide_wt = candidate.peptide_wt
+    pssm = _PSSM
+    peptide_mut = _normalize_peptide(getattr(candidate, "peptide_mut", None), pssm)
+    if pssm is None or peptide_mut is None:
+        return (SCORE_NAME, 0.0)
 
-    # 2. Compute the score using your logic
-    base_score = _tcr_contact_score(peptide_mut)
+    def _position_ratio(aa: str, col: str) -> float:
+        score = pssm.loc[aa, col]
+        best, worst = pssm[col].max(), pssm[col].min()
+        return (score - worst) / (best - worst) if best != worst else 0.5
 
-    if not isinstance(peptide_wt, str) or not isinstance(peptide_mut, str):
-        return (SCORE_NAME, base_score)
-
-    impact_delta = _mutation_impact_delta(peptide_wt, peptide_mut)
-    score_value = base_score + IMPACT_WEIGHT * impact_delta
-    score_value = max(0.0, min(1.0, score_value))
-
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    ratios = [
+        _position_ratio(aa, col) for aa, col in zip(peptide_mut, REQUIRED_PSSM_COLUMNS)
+    ]
+    return (SCORE_NAME, sum(ratios) / len(ratios))
