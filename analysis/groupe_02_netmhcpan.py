@@ -20,22 +20,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from logic.data_loader import load_candidates
+from logic.orchestrator import run_modules
+from logic.scoring import aggregate
+
 DATA_DIR = PROJECT_ROOT / "data"
 ANALYSIS_DIR = PROJECT_ROOT / "analysis"
 MODULES_DIR = PROJECT_ROOT / "modules"
 
 VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
-META_COLUMNS = {
-    "candidate_id",
-    "peptide_wt",
-    "peptide_mut",
-    "mut_pos_1based",
-    "gene",
-    "hla_allele",
-    "note",
-    "ic50_nm",
-    "label",
-}
 
 DATASETS = {
     "patient_zero": {
@@ -51,29 +44,23 @@ DATASETS = {
 }
 
 
-def _label_from_note(note: str) -> str:
-    if not isinstance(note, str) or not note.strip():
-        return "UNKNOWN"
-    return note.split("—", 1)[0].strip().split()[0].upper()
-
-
 def _is_valid_peptide(peptide: str) -> bool:
-    """
-    Initial checking to prevent edge cases like CAND_16 that are not valid
-    """
+    """Return True only for non-empty peptides with valid amino-acid letters."""
     return bool(peptide) and all(char in VALID_AA for char in peptide)
 
 
 def parse_netmhcpan_output(path: Path) -> pd.DataFrame:
-    """Parse NetMHCpan txt"""
+    """Parse NetMHCpan text output into a dataframe."""
     rows: list[dict[str, object]] = []
 
     with open(path, encoding="utf-8", errors="ignore") as handle:
         for raw_line in handle:
             parts = raw_line.split()
-            if len(parts) < 13:  ## too short lines
+
+            # Skip short lines, headers, and non-data rows.
+            if len(parts) < 13:
                 continue
-            if not parts[0].isdigit():  ## first tokend should be a number
+            if not parts[0].isdigit():
                 continue
             if not parts[1].startswith("HLA-"):
                 continue
@@ -89,8 +76,8 @@ def parse_netmhcpan_output(path: Path) -> pd.DataFrame:
             except ValueError:
                 continue
 
-            bind_level = ""
-            if len(parts) >= 15 and parts[13] == "<=":  ## saving binding level
+            bind_level = "--"
+            if len(parts) >= 15 and parts[13] == "<=":
                 bind_level = parts[14]
 
             rows.append(
@@ -99,7 +86,7 @@ def parse_netmhcpan_output(path: Path) -> pd.DataFrame:
                     "peptide_mut": peptide,
                     "score_el": score_el,
                     "netmhcpan_rank_pct": rank_el,
-                    "bind_level": bind_level or "--",
+                    "bind_level": bind_level,
                 }
             )
 
@@ -109,6 +96,48 @@ def parse_netmhcpan_output(path: Path) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df = df.sort_values("netmhcpan_rank_pct", ascending=True)
     df = df.drop_duplicates(subset=["identity", "peptide_mut"], keep="first")
+    return df
+
+
+def score_dataset(csv_path: Path) -> pd.DataFrame:
+    """Run the current pipeline and return a scored dataframe."""
+    candidates = load_candidates(csv_path)
+    scored = run_modules(candidates, MODULES_DIR)
+    scored = aggregate(scored)
+
+    rows: list[dict[str, object]] = []
+    for candidate in scored:
+        normalized_scores = {
+            name: value
+            for name, value in candidate.scores.items()
+            if name != "total_score"
+        }
+
+        if normalized_scores:
+            best_module = max(normalized_scores, key=normalized_scores.get)
+            worst_module = min(normalized_scores, key=normalized_scores.get)
+        else:
+            best_module = ""
+            worst_module = ""
+
+        rows.append(
+            {
+                "candidate_id": candidate.candidate_id,
+                "peptide_mut": candidate.peptide_mut,
+                "hla_allele": candidate.hla_allele,
+                "gene": candidate.gene,
+                "note": candidate.note,
+                "pipeline_score": candidate.scores.get("total_score", 0.0),
+                "best_module": best_module,
+                "best_module_score": normalized_scores.get(best_module, 0.0),
+                "worst_module": worst_module,
+                "worst_module_score": normalized_scores.get(worst_module, 0.0),
+            }
+        )
+
+    df = pd.DataFrame(rows)
+    df = df.sort_values("pipeline_score", ascending=False).reset_index(drop=True)
+    df["our_rank"] = range(1, len(df) + 1)
     return df
 
 
@@ -130,6 +159,7 @@ def main() -> None:
         if not netmhcpan_path.exists():
             print(f"Missing NetMHCpan output: {netmhcpan_path}")
             continue
+
         df = parse_netmhcpan_output(netmhcpan_path)
         print(f"{dataset_name}: parsed {len(df)} NetMHCpan rows")
 
