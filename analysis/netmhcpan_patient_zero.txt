@@ -1,0 +1,32 @@
+# NetMHCpan version 4.1b
+
+# Tmpdir made /var/www/services/services/NetMHCpan-4.1/tmp/netMHCpandSZHxa
+# Input is in PEPTIDE format
+
+# Make both EL and BA predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01      KLTDFINAV KLTDFINAV  0  0  0  0  0    KLTDFINAV         PEPLIST 0.9845360    0.006 0.879084    0.014     3.70 <= SB
+   1 HLA-A*02:01      GLWDPFNAV GLWDPFNAV  0  0  0  0  0    GLWDPFNAV         PEPLIST 0.9629600    0.017 0.833681    0.056     6.05 <= SB
+   1 HLA-A*02:01      ALNSYTIRV ALNSYTIRV  0  0  0  0  0    ALNSYTIRV         PEPLIST 0.9514460    0.023 0.785221    0.134    10.22 <= SB
+   1 HLA-A*02:01      SLMAFTIAV SLMAFTIAV  0  0  0  0  0    SLMAFTIAV         PEPLIST 0.9004920    0.049 0.911511    0.008     2.60 <= SB
+   1 HLA-A*02:01      YVDEHGTKL YVDEHGTKL  0  0  0  0  0    YVDEHGTKL         PEPLIST 0.8712670    0.064 0.508541    1.689   203.87 <= SB
+   1 HLA-A*02:01      SMYDPAKAV SMYDPAKAV  0  0  0  0  0    SMYDPAKAV         PEPLIST 0.8163490    0.097 0.608807    0.826    68.90 <= SB
+   1 HLA-A*02:01      ALGTFINQL ALGTFINQL  0  0  0  0  0    ALGTFINQL         PEPLIST 0.8010450    0.107 0.600861    0.880    75.08 <= SB
+   1 HLA-A*02:01      GLAFQYPEL GLAFQYPEL  0  0  0  0  0    GLAFQYPEL         PEPLIST 0.6940120    0.188 0.669992    0.504    35.54 <= SB
+   1 HLA-A*02:01      VLMSFYLAV VLMSFYLAV  0  0  0  0  0    VLMSFYLAV         PEPLIST 0.6710260    0.213 0.866657    0.021     4.23 <= SB
+   1 HLA-A*02:01      YLNRQFGAV YLNRQFGAV  0  0  0  0  0    YLNRQFGAV         PEPLIST 0.2672130    0.865 0.683150    0.450    30.82 <= WB
+   1 HLA-A*02:01      KADSGTFRL KADSGTFRL  0  0  0  0  0    KADSGTFRL         PEPLIST 0.1952070    1.164 0.284029    6.262  2313.80 <= WB
+   1 HLA-A*02:01      SLNRTFRLV SLNRTFRLV  0  0  0  0  0    SLNRTFRLV         PEPLIST 0.1636310    1.334 0.470399    2.134   308.02 <= WB
+   1 HLA-A*02:01      FTQEYGNAL FTQEYGNAL  0  0  0  0  0    FTQEYGNAL         PEPLIST 0.1082750    1.772 0.378561    3.686   832.00 <= WB
+   1 HLA-A*02:01      ILVMILMVL ILVMILMVL  0  0  0  0  0    ILVMILMVL         PEPLIST 0.0439760    3.149 0.431215    2.715   470.66
+   1 HLA-A*02:01      GLTDAFNQP GLTDAFNQP  0  0  0  0  0    GLTDAFNQP         PEPLIST 0.0183240    4.955 0.162066   13.368  8658.18
+   1 HLA-A*02:01      FATEDHGKL FATEDHGKL  0  0  0  0  0    FATEDHGKL         PEPLIST 0.0061070    8.408 0.106791   20.861 15745.71
+   1 HLA-A*02:01      DDKREKDRK DDKREKDRK  0  0  0  0  0    DDKREKDRK         PEPLIST 0.0000010   95.000 0.002485   98.375 48673.57
+---------------------------------------------------------------------------------------------------------------------------
