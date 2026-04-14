@@ -114,7 +114,7 @@ def test_missing_corpus_returns_neutral_score(monkeypatch):
     name, value = groupe_02_d2.get_score(_make_candidate(peptide_mut="AAAAAAAAA"))
 
     assert name == groupe_02_d2.SCORE_NAME
-    assert value == 9.0
+    assert value == 0.0
 
 
 def test_no_same_length_in_corpus_returns_neutral_score(monkeypatch):
@@ -126,7 +126,7 @@ def test_no_same_length_in_corpus_returns_neutral_score(monkeypatch):
     name, value = groupe_02_d2.get_score(_make_candidate(peptide_mut="AAAAAAAAA"))
 
     assert name == groupe_02_d2.SCORE_NAME
-    assert value == 9.0
+    assert value == 0.0
 
 
 def test_edge_case_short_peptide():

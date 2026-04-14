@@ -79,7 +79,7 @@ def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
     if not same_len:
         return (
             SCORE_NAME,
-            float(len(pep)),
+            0.0,
         )  # Score neutre si pas de comparaison possible
 
     min_dist = min(_hamming(pep, p) for p in same_len)
