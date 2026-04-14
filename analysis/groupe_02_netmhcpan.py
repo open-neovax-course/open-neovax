@@ -1,7 +1,5 @@
 """Benchmark Open-NeoVax against NetMHCpan 4.1.
 
-This script implements the NetMHCpan comparison
-
 Usage:
     python analysis/netmhcpan_benchmark.py
     python analysis/netmhcpan_benchmark.py --dataset patient_zero
@@ -57,7 +55,6 @@ def parse_netmhcpan_output(path: Path) -> pd.DataFrame:
         for raw_line in handle:
             parts = raw_line.split()
 
-            # Skip short lines, headers, and non-data rows.
             if len(parts) < 13:
                 continue
             if not parts[0].isdigit():
@@ -141,6 +138,59 @@ def score_dataset(csv_path: Path) -> pd.DataFrame:
     return df
 
 
+def compare_rankings(
+    pipeline_df: pd.DataFrame,
+    netmhcpan_df: pd.DataFrame,
+    raw_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Merge our ranking with NetMHCpan predictions."""
+    source = raw_df.copy()
+    source["peptide_mut"] = source["peptide_mut"].astype(str).str.upper()
+
+    merged = pipeline_df.merge(
+        source[["candidate_id", "peptide_mut", "note"]],
+        on=["candidate_id", "peptide_mut"],
+        how="left",
+    )
+
+    merged = merged.merge(
+        netmhcpan_df[["peptide_mut", "score_el", "netmhcpan_rank_pct", "bind_level"]],
+        on="peptide_mut",
+        how="inner",
+    )
+
+    merged = merged.sort_values("netmhcpan_rank_pct", ascending=True).reset_index(
+        drop=True
+    )
+    merged["netmhcpan_rank"] = range(1, len(merged) + 1)
+
+    merged = merged.sort_values("pipeline_score", ascending=False).reset_index(
+        drop=True
+    )
+    merged["our_rank"] = range(1, len(merged) + 1)
+
+    merged["delta"] = merged["our_rank"] - merged["netmhcpan_rank"]
+
+    return merged[
+        [
+            "candidate_id",
+            "peptide_mut",
+            "pipeline_score",
+            "our_rank",
+            "score_el",
+            "netmhcpan_rank_pct",
+            "bind_level",
+            "netmhcpan_rank",
+            "delta",
+            "best_module",
+            "best_module_score",
+            "worst_module",
+            "worst_module_score",
+            "note",
+        ]
+    ]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Benchmark the Open-NeoVax pipeline against NetMHCpan 4.1."
@@ -162,15 +212,16 @@ def main() -> None:
             print(f"Missing dataset: {csv_path}")
             continue
 
-        pipeline_df = score_dataset(csv_path)
-        print(f"{dataset_name}: scored {len(pipeline_df)} candidates with pipeline")
-
         if not netmhcpan_path.exists():
             print(f"Missing NetMHCpan output: {netmhcpan_path}")
             continue
 
+        raw_df = pd.read_csv(csv_path)
+        pipeline_df = score_dataset(csv_path)
         netmhcpan_df = parse_netmhcpan_output(netmhcpan_path)
-        print(f"{dataset_name}: parsed {len(netmhcpan_df)} NetMHCpan rows")
+        comparison_df = compare_rankings(pipeline_df, netmhcpan_df, raw_df)
+
+        print(f"{dataset_name}: merged {len(comparison_df)} comparable candidates")
 
 
 if __name__ == "__main__":
