@@ -1,6 +1,6 @@
 """Benchmark Open-NeoVax against NetMHCpan 4.1.
 
-This script implements the NetMHCpan comparison issue from scratch.
+This script implements the NetMHCpan comparison
 
 Usage:
     python analysis/netmhcpan_benchmark.py
@@ -155,13 +155,22 @@ def main() -> None:
 
     targets = list(DATASETS) if args.dataset == "all" else [args.dataset]
     for dataset_name in targets:
+        csv_path = DATASETS[dataset_name]["csv"]
         netmhcpan_path = DATASETS[dataset_name]["netmhcpan"]
+
+        if not csv_path.exists():
+            print(f"Missing dataset: {csv_path}")
+            continue
+
+        pipeline_df = score_dataset(csv_path)
+        print(f"{dataset_name}: scored {len(pipeline_df)} candidates with pipeline")
+
         if not netmhcpan_path.exists():
             print(f"Missing NetMHCpan output: {netmhcpan_path}")
             continue
 
-        df = parse_netmhcpan_output(netmhcpan_path)
-        print(f"{dataset_name}: parsed {len(df)} NetMHCpan rows")
+        netmhcpan_df = parse_netmhcpan_output(netmhcpan_path)
+        print(f"{dataset_name}: parsed {len(netmhcpan_df)} NetMHCpan rows")
 
 
 if __name__ == "__main__":
