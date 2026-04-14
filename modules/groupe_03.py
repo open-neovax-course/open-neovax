@@ -119,7 +119,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     """
     peptide = candidate.peptide_mut
 
-    if len(peptide) < 2:
+    if type(peptide) is not str or len(peptide) < 2:
         return (SCORE_NAME, 0.0)
 
     score_value = _lookup_score(peptide[1].upper())

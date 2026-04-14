@@ -3,6 +3,7 @@ from modules.groupe_10 import get_score
 
 
 def make_candidate(peptide_mut):
+    """Helper to create a test candidate with a given mutant peptide."""
     return Candidate(
         candidate_id="TEST",
         peptide_wt="AAAAAAAAA",
@@ -11,7 +12,11 @@ def make_candidate(peptide_mut):
     )
 
 
+# --- Nominal tests ---
+
+
 def test_proline_scores_highest():
+    """Proline is the best ERAP substrate, should return max score (1.0)."""
     name, value = get_score(make_candidate("PLMAFTIAV"))
     assert name == "B_erap_nterm_proxy"
     assert isinstance(value, float)
@@ -19,6 +24,7 @@ def test_proline_scores_highest():
 
 
 def test_glycine_scores_lowest():
+    """Glycine blocks ERAP trimming, should return min score (-1.0)."""
     name, value = get_score(make_candidate("GLMAFTIAV"))
     assert name == "B_erap_nterm_proxy"
     assert isinstance(value, float)
@@ -26,20 +32,29 @@ def test_glycine_scores_lowest():
 
 
 def test_leucine_has_intermediate_negative_score():
+    """Leucine is a poor substrate, should return an intermediate penalty."""
     name, value = get_score(make_candidate("LLMAFTIAV"))
     assert name == "B_erap_nterm_proxy"
     assert isinstance(value, float)
     assert value == -0.5
 
 
+# --- Edge cases ---
+
+
 def test_empty_peptide():
+    """Empty input should return the penalty score."""
     name, value = get_score(make_candidate(""))
     assert name == "B_erap_nterm_proxy"
     assert isinstance(value, float)
     assert value == -1.0
 
 
+# --- Ordering and distribution tests ---
+
+
 def test_compare_p_vs_g_vs_l():
+    """Verify the biological ranking: P (best) > L (poor) > G (worst)."""
     _, p_score = get_score(make_candidate("PLMAFTIAV"))
     _, g_score = get_score(make_candidate("GLMAFTIAV"))
     _, l_score = get_score(make_candidate("LLMAFTIAV"))
@@ -48,6 +63,7 @@ def test_compare_p_vs_g_vs_l():
 
 
 def test_multiple_distinct_scores_exist():
+    """The scoring table should produce at least 5 different values."""
     scores = {
         get_score(make_candidate("PLMAFTIAV"))[1],
         get_score(make_candidate("KLMAFTIAV"))[1],
@@ -58,3 +74,24 @@ def test_multiple_distinct_scores_exist():
         get_score(make_candidate("GLMAFTIAV"))[1],
     }
     assert len(scores) >= 5
+
+
+def test_non_standard_first_aa():
+    """Non-standard amino acid (X) at N-terminal should return penalty."""
+    name, value = get_score(make_candidate("XLMAFTIAV"))
+    assert name == "B_erap_nterm_proxy"
+    assert value == -1.0
+
+
+def test_too_short_peptide():
+    """Peptide shorter than 8 aa is out of MHC-I range."""
+    name, value = get_score(make_candidate("PLM"))
+    assert name == "B_erap_nterm_proxy"
+    assert value == -1.0
+
+
+def test_too_long_peptide():
+    """Peptide longer than 11 aa is out of MHC-I range."""
+    name, value = get_score(make_candidate("PLMAFTIAVAAAA"))
+    assert name == "B_erap_nterm_proxy"
+    assert value == -1.0

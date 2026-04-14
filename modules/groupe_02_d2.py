@@ -1,12 +1,13 @@
 """
-A8 — TCR contact potential (Group 11)
-=====================================
+D2 — Approximate self-peptide match (Group 02)
+===============================================
 
-Scores how visible the mutated peptide may be to the T cell receptor.
-It looks at positions P4-P7 of the mutated peptide.
+Models how dissimilar a mutant peptide is from a reference “self” peptide
+by counting residue mismatches along the sequence (Hamming distance).
 
-Higher scores mean more visible residues at these positions.
-Lower scores mean less visible residues at these positions.
+Intended to capture approximate self-reactivity: peptides that are
+farther from self receive higher scores (less self-like), while
+peptides very close to self receive lower scores (more self-like).
 """
 
 from __future__ import annotations
@@ -35,34 +36,8 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 # Name of the score returned by this module.
 # IMPORTANT: this name must be unique across all modules!
 # Convention: <department>_<concept>[_detail]
-SCORE_NAME = "A_tcr_contact_potential"
-
-TCR_SALIENCY = {
-    "W": 1.0,
-    "F": 0.9,
-    "Y": 0.9,
-    "K": 0.8,
-    "R": 0.8,
-    "D": 0.7,
-    "E": 0.7,
-    "H": 0.6,
-    "N": 0.5,
-    "Q": 0.5,
-    "M": 0.4,
-    "L": 0.3,
-    "I": 0.3,
-    "V": 0.2,
-    "T": 0.2,
-    "S": 0.2,
-    "C": 0.2,
-    "P": 0.1,
-    "A": 0.1,
-    "G": 0.0,
-}
-
-TCR_POSITIONS = [3, 4, 5, 6]
-IMPACT_WEIGHT = 0.2
-
+SCORE_NAME = "D_self_approx_match"
+_SELF_PEPTIDES = None
 
 # ══════════════════════════════════════════════════════════════════════
 #  INTERNAL FUNCTIONS (private)
@@ -73,46 +48,43 @@ IMPACT_WEIGHT = 0.2
 # By convention, prefix them with _ to indicate they are private.
 
 
-def _tcr_contact_score(peptide: str) -> float:
-    """Compute average saliency at TCR-exposed positions P4-P7."""
-    if not peptide or len(peptide) < 8:
-        return 0.0
-
-    peptide = peptide.upper()
-    total = sum(TCR_SALIENCY.get(peptide[i], 0.0) for i in TCR_POSITIONS)
-    return total / len(TCR_POSITIONS)
-
-
-def _single_substitution_index(peptide_wt: str, peptide_mut: str) -> int | None:
-    """Return index of the unique substitution, else None."""
-    if not peptide_wt or not peptide_mut:
-        return None
-    if len(peptide_wt) != len(peptide_mut):
-        return None
-
-    diff_positions = [
-        i
-        for i, (aa_wt, aa_mut) in enumerate(
-            zip(peptide_wt.upper(), peptide_mut.upper())
-        )
-        if aa_wt != aa_mut
-    ]
-    if len(diff_positions) != 1:
-        return None
-    return diff_positions[0]
+def _load_self_peptides():
+    global _SELF_PEPTIDES
+    if _SELF_PEPTIDES is not None:
+        return _SELF_PEPTIDES
+    path = DATA_DIR / "human_peptides_small.txt"
+    if not path.exists():
+        _SELF_PEPTIDES = set()
+        return _SELF_PEPTIDES
+    with open(path) as f:
+        _SELF_PEPTIDES = set(line.strip() for line in f)
+    return _SELF_PEPTIDES
 
 
-def _mutation_impact_delta(peptide_wt: str, peptide_mut: str) -> float:
-    """Return saliency change for a single exposed substitution, else 0."""
-    mut_index = _single_substitution_index(peptide_wt, peptide_mut)
-    if mut_index is None or mut_index not in TCR_POSITIONS:
-        return 0.0
+def _hamming(a, b) -> int:
+    """Compute the number of differences in sequences."""
+    return sum(c1 != c2 for c1, c2 in zip(a, b))
 
-    peptide_wt = peptide_wt.upper()
-    peptide_mut = peptide_mut.upper()
-    wt_saliency = TCR_SALIENCY.get(peptide_wt[mut_index], 0.0)
-    mut_saliency = TCR_SALIENCY.get(peptide_mut[mut_index], 0.0)
-    return mut_saliency - wt_saliency
+
+def _D_distance_score(candidate: "Candidate") -> tuple[str, float]:
+    pep = candidate.peptide_mut
+    if not pep:
+        return (SCORE_NAME, 0.0)
+
+    pep = pep.strip().upper()
+    corpus = _load_self_peptides()
+
+    same_len = [p for p in corpus if len(p) == len(pep)]
+
+    if not same_len:
+        return (
+            SCORE_NAME,
+            0.0,
+        )  # Score neutre si pas de comparaison possible
+
+    min_dist = min(_hamming(pep, p) for p in same_len)
+
+    return (SCORE_NAME, float(min_dist))
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -143,19 +115,4 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
     tuple[str, float]
         (score_name, score_value)
     """
-    # 1. Get the sequence to analyze
-    peptide_mut = candidate.peptide_mut
-    peptide_wt = candidate.peptide_wt
-
-    # 2. Compute the score using your logic
-    base_score = _tcr_contact_score(peptide_mut)
-
-    if not isinstance(peptide_wt, str) or not isinstance(peptide_mut, str):
-        return (SCORE_NAME, base_score)
-
-    impact_delta = _mutation_impact_delta(peptide_wt, peptide_mut)
-    score_value = base_score + IMPACT_WEIGHT * impact_delta
-    score_value = max(0.0, min(1.0, score_value))
-
-    # 3. Return the result in the expected format
-    return (SCORE_NAME, score_value)
+    return _D_distance_score(candidate)

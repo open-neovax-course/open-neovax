@@ -32,7 +32,7 @@ def test_return_types():
 
 def test_score_name_is_expected():
     name, _ = get_score(_make_candidate())
-    assert name == "d1_exact_self_similarity"
+    assert name == "D1_exact_self_similarity"
 
 
 def test_score_value_finite():
