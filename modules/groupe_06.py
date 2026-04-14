@@ -23,6 +23,26 @@ Score interpretation:
     = 0  : neutral C-terminus, no strong signal
     < 0  : unfavourable C-terminus, peptide less likely to be generated
 
+    High score means: the C-terminal residue matches the hydrophobic/aromatic
+    preference frequently observed at the C-terminus of experimentally validated
+    HLA class I ligands — a plausible proteasomal cleavage product.
+
+    Low score means: the C-terminal residue is charged (D, E, K, R), which is
+    rarely observed at the C-terminus of HLA-I peptides in ligandome data,
+    suggesting the proteasome is unlikely to produce this exact cleavage.
+
+    Typical false positive: a peptide ending with V or L that was NOT generated
+    by the proteasome but by another protease (e.g. cathepsins, signal peptidase).
+    The C-terminal preference is a population-level bias, not a per-peptide
+    guarantee. A high score does not confirm actual in-vivo generation.
+
+    Critical question answered: the C-terminus is biologically relevant because
+    the proteasome cleaves after hydrophobic/aromatic residues more frequently
+    (documented in Kesmir et al. 2002, Tenzer et al. 2005). This residue defines
+    the exact C-terminal end of the mature peptide before TAP transport and
+    HLA loading — making it a necessary (though not sufficient) condition for
+    presentation.
+
 Limitations:
     - Only the last amino acid is considered; upstream context is ignored.
     - Immunoproteasome vs constitutive proteasome are not distinguished.
