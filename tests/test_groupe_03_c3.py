@@ -44,7 +44,7 @@ def test_score_value_finite():
 
 def test_valid():
     _, value = get_score(_make_candidate())
-    assert value == 0.2 * 0.75 + 0.1 * 0.15 + 0.1 * 0.1
+    assert value == 0.1 * 0.4 + 0.1 * 0.3 + 0.1 * 0.3
 
 
 def test_mut_too_short():
@@ -62,7 +62,7 @@ def test_unknown_amino_acid():
     candidate = Candidate(
         candidate_id="TEST_UNKNOWN",
         peptide_wt="AAAAAAAA",
-        peptide_mut="XAXAXAAA",
+        peptide_mut="AAXAAXXA",
         mut_pos_1based=2,
     )
     _, value = get_score(candidate)

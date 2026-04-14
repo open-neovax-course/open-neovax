@@ -45,10 +45,9 @@ SCORE_NAME = "C_anchoring_secondary"
 
 """
 The determination of these weights was predominantly informed by the methodology
-described in doi: 10.1186/1745-7580-6-12,
-with minor adjustments derived from doi: 10.1093/gigascience/gix017.
+described in Ruppert et al. 1993, Rammensee et al. 1999, Sidney et al. 2008
 """
-_score_weights = {(0, "P1"): 0.75, (2, "P3"): 0.15, (4, "P5"): 0.1}
+_score_weights = {(2, "P3"): 0.4, (5, "P6"): 0.3, (6, "P7"): 0.3}
 
 
 def _secondary_anchoring(pep: str) -> float:
