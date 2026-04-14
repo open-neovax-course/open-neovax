@@ -1,9 +1,9 @@
 """Benchmark Open-NeoVax against NetMHCpan 4.1.
 
 Usage:
-    python analysis/netmhcpan_benchmark.py
-    python analysis/netmhcpan_benchmark.py --dataset patient_zero
-    python analysis/netmhcpan_benchmark.py --dataset patient_real
+    python analysis/groupe_02_netmhcpan.py
+    python analysis/groupe_02_netmhcpan.py --dataset patient_zero
+    python analysis/groupe_02_netmhcpan.py --dataset patient_real
 """
 
 from __future__ import annotations
@@ -13,6 +13,9 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+
+
+from scipy.stats import spearmanr
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -191,6 +194,57 @@ def compare_rankings(
     ]
 
 
+def print_summary(dataset_name: str, comparison_df: pd.DataFrame) -> None:
+    """Print Spearman correlation and the top 3 disagreements."""
+    rho, p_value = spearmanr(comparison_df["our_rank"], comparison_df["netmhcpan_rank"])
+
+    print(f"\n=== {dataset_name} ===")
+    print(f"Candidates compared: {len(comparison_df)}")
+    print(f"Spearman correlation: {rho:.3f} (p={p_value:.4f})")
+
+    print("\nTop 3 disagreements:")
+    top = comparison_df.assign(abs_delta=comparison_df["delta"].abs())
+    top = top.sort_values(["abs_delta", "candidate_id"], ascending=[False, True]).head(
+        3
+    )
+
+    for _, row in top.iterrows():
+        if int(row["delta"]) < 0:
+            direction = "we rank it higher"
+        else:
+            direction = "NetMHCpan ranks it higher"
+
+        print(
+            f"- {row['candidate_id']}: our #{int(row['our_rank'])}, "
+            f"NetMHCpan #{int(row['netmhcpan_rank'])}, delta={int(row['delta']):+d}; "
+            f"{direction}. Best module: {row['best_module']} "
+            f"({row['best_module_score']:.3f}), worst module: {row['worst_module']} "
+            f"({row['worst_module_score']:.3f})."
+        )
+
+
+def benchmark_dataset(dataset_name: str) -> None:
+    """Run the benchmark on one dataset."""
+    config = DATASETS[dataset_name]
+    csv_path = config["csv"]
+    netmhcpan_path = config["netmhcpan"]
+
+    if not csv_path.exists():
+        print(f"Missing dataset: {csv_path}")
+        return
+
+    if not netmhcpan_path.exists():
+        print(f"Missing NetMHCpan output: {netmhcpan_path}")
+        return
+
+    raw_df = pd.read_csv(csv_path)
+    pipeline_df = score_dataset(csv_path)
+    netmhcpan_df = parse_netmhcpan_output(netmhcpan_path)
+    comparison_df = compare_rankings(pipeline_df, netmhcpan_df, raw_df)
+
+    print_summary(dataset_name, comparison_df)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Benchmark the Open-NeoVax pipeline against NetMHCpan 4.1."
@@ -205,23 +259,7 @@ def main() -> None:
 
     targets = list(DATASETS) if args.dataset == "all" else [args.dataset]
     for dataset_name in targets:
-        csv_path = DATASETS[dataset_name]["csv"]
-        netmhcpan_path = DATASETS[dataset_name]["netmhcpan"]
-
-        if not csv_path.exists():
-            print(f"Missing dataset: {csv_path}")
-            continue
-
-        if not netmhcpan_path.exists():
-            print(f"Missing NetMHCpan output: {netmhcpan_path}")
-            continue
-
-        raw_df = pd.read_csv(csv_path)
-        pipeline_df = score_dataset(csv_path)
-        netmhcpan_df = parse_netmhcpan_output(netmhcpan_path)
-        comparison_df = compare_rankings(pipeline_df, netmhcpan_df, raw_df)
-
-        print(f"{dataset_name}: merged {len(comparison_df)} comparable candidates")
+        benchmark_dataset(dataset_name)
 
 
 if __name__ == "__main__":
