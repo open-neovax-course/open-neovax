@@ -1,7 +1,7 @@
 """ML pipeline — Global scoring model for neoepitope ranking.
 
 Group 09 — Module A2 (Peptide Net Charge)
-Objective: Analyze how physicochemical properties, specifically net charge, 
+Objective: Analyze how physicochemical properties, specifically net charge,
 contribute to the global neoepitope ranking.
 
 Usage:
