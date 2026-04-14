@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from logic.types import Candidate
 
 SCORE_NAME = "B_sanity_check"
-VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")
-PENALTY_PER_FAILURE = -10.0
+VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")  # 20 standard amino acids
+PENALTY_PER_FAILURE = -10.0  # strong penalty to dominate other scores
 
 
 def get_score(candidate: "Candidate") -> tuple[str, float]:
@@ -31,6 +31,7 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
         mut = candidate.peptide_mut
         wt = candidate.peptide_wt
 
+        # early exit if either peptide is missing
         if not mut or not wt:
             return (SCORE_NAME, PENALTY_PER_FAILURE)
 
@@ -42,22 +43,28 @@ def get_score(candidate: "Candidate") -> tuple[str, float]:
 
         penalties = 0
 
+        # check 1: MHC-I ligands must be 8-11 amino acids
         if not (8 <= len(mut) <= 11):
             penalties += 1
 
+        # check 2: only the 20 standard amino acids are allowed
         if not all(aa in VALID_AA for aa in mut):
             penalties += 1
 
+        # check 3: WT and MUT must differ (otherwise no mutation)
         if wt == mut:
             penalties += 1
 
+        # check 4: mutation position must be within the peptide
         mut_pos = candidate.mut_pos_1based
         if not isinstance(mut_pos, int) or mut_pos < 1 or mut_pos > len(mut):
             penalties += 1
 
+        # all checks passed — valid peptide
         if penalties == 0:
             return (SCORE_NAME, 1.0)
 
+        # stack penalties: more failures = worse score
         return (SCORE_NAME, penalties * PENALTY_PER_FAILURE)
 
     except Exception:
