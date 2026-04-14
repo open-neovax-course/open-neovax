@@ -30,6 +30,8 @@ PATIENT_ZERO_RAW = DATA_DIR / "patient_zero.csv"
 PATIENT_REAL_RAW = DATA_DIR / "patient_real.csv"
 SCORES_ZERO_CSV = ANALYSIS_DIR / "scores_patient_zero.csv"
 SCORES_REAL_CSV = ANALYSIS_DIR / "scores_patient_real.csv"
+SCORE_MATRIX_ZERO_CSV = ANALYSIS_DIR / "score_matrix_patient_zero.csv"
+SCORE_MATRIX_REAL_CSV = ANALYSIS_DIR / "score_matrix_patient_real.csv"
 NETMHCPAN_ZERO_TXT = ANALYSIS_DIR / "netmhcpan_patient_zero.txt"
 NETMHCPAN_REAL_TXT = ANALYSIS_DIR / "netmhcpan_patient_real.txt"
 
@@ -61,6 +63,16 @@ def _pipeline_mean_score(scores_csv: Path) -> pd.DataFrame:
     df[feat_cols] = df[feat_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
     df["pipeline_score"] = df[feat_cols].mean(axis=1)
     return df[["candidate_id", "label", "pipeline_score"]]
+
+
+def _resolve_scores_csv(primary: Path, fallback: Path) -> Path | None:
+    """Resolve score CSV path with backwards-compatible fallback naming."""
+    if primary.exists():
+        return primary
+    if fallback.exists():
+        print(f"  Using fallback score file: {fallback.name}")
+        return fallback
+    return None
 
 
 def _print_peptides_for_netmhcpan(df_peps: pd.DataFrame) -> None:
@@ -148,8 +160,16 @@ def analyse_patient_zero() -> None:
     print("  NetMHCpan 4.1 benchmark - patient_zero")
     print(sep)
 
-    if not PATIENT_ZERO_RAW.exists() or not SCORES_ZERO_CSV.exists():
-        print("  patient_zero inputs not found - skipping.")
+    scores_zero = _resolve_scores_csv(SCORES_ZERO_CSV, SCORE_MATRIX_ZERO_CSV)
+
+    if not PATIENT_ZERO_RAW.exists() or scores_zero is None:
+        print(
+            "  patient_zero inputs not found - skipping "
+            "("
+            f"{PATIENT_ZERO_RAW.name} + "
+            f"{SCORES_ZERO_CSV.name}/{SCORE_MATRIX_ZERO_CSV.name}"
+            ")."
+        )
         return
 
     df_peps = _load_patient_peptides(PATIENT_ZERO_RAW)
@@ -174,7 +194,7 @@ def analyse_patient_zero() -> None:
         print("  No candidates matched parsed NetMHCpan rows.")
         return
 
-    df_pipe = _pipeline_mean_score(SCORES_ZERO_CSV)
+    df_pipe = _pipeline_mean_score(scores_zero)
     df = df_pipe.merge(
         df_net_by_id[["candidate_id", "netmhcpan_rank_pct", "netmhcpan_bind"]],
         on="candidate_id",
@@ -238,8 +258,16 @@ def analyse_patient_real() -> None:
     print("  Bonus - NetMHCpan vs our pipeline vs IC50 on patient_real")
     print(sep)
 
-    if not PATIENT_REAL_RAW.exists() or not SCORES_REAL_CSV.exists():
-        print("  patient_real files not found - skipping.")
+    scores_real = _resolve_scores_csv(SCORES_REAL_CSV, SCORE_MATRIX_REAL_CSV)
+
+    if not PATIENT_REAL_RAW.exists() or scores_real is None:
+        print(
+            "  patient_real files not found - skipping "
+            "("
+            f"{PATIENT_REAL_RAW.name} + "
+            f"{SCORES_REAL_CSV.name}/{SCORE_MATRIX_REAL_CSV.name}"
+            ")."
+        )
         return
 
     if not NETMHCPAN_REAL_TXT.exists():
@@ -267,7 +295,7 @@ def analyse_patient_real() -> None:
         how="inner",
     )
 
-    df_pipe = _pipeline_mean_score(SCORES_REAL_CSV)
+    df_pipe = _pipeline_mean_score(scores_real)
     df = df_real.merge(df_pipe, on="candidate_id", how="inner")
 
     if len(df) < 5:
