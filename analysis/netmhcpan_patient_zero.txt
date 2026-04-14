@@ -1,0 +1,41 @@
+Caution, multiple occurrences of parameter -f on command line.
+
+# NetMHCpan version 4.1b
+
+# Tmpdir made /var/www/services/services/NetMHCpan-4.1/tmp/netMHCpanFX7s0w
+# Input is in PEPTIDE format
+
+# Make EL predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01      SLMAFTIAV SLMAFTIAV  0  0  0  0  0    SLMAFTIAV         PEPLIST 0.9004920    0.049 <= SB
+   1 HLA-A*02:01      VLMSFYLAV VLMSFYLAV  0  0  0  0  0    VLMSFYLAV         PEPLIST 0.6710260    0.213 <= SB
+   1 HLA-A*02:01      SMYDPAKAV SMYDPAKAV  0  0  0  0  0    SMYDPAKAV         PEPLIST 0.8163490    0.097 <= SB
+   1 HLA-A*02:01      ALNSYTIRV ALNSYTIRV  0  0  0  0  0    ALNSYTIRV         PEPLIST 0.9514460    0.023 <= SB
+   1 HLA-A*02:01      GLAFQYPEL GLAFQYPEL  0  0  0  0  0    GLAFQYPEL         PEPLIST 0.6940120    0.188 <= SB
+   1 HLA-A*02:01      KLTDFINAV KLTDFINAV  0  0  0  0  0    KLTDFINAV         PEPLIST 0.9845360    0.006 <= SB
+   1 HLA-A*02:01      YVDEHGTKL YVDEHGTKL  0  0  0  0  0    YVDEHGTKL         PEPLIST 0.8712670    0.064 <= SB
+   1 HLA-A*02:01      KADSGTFRL KADSGTFRL  0  0  0  0  0    KADSGTFRL         PEPLIST 0.1952070    1.164 <= WB
+   1 HLA-A*02:01      FTQEYGNAL FTQEYGNAL  0  0  0  0  0    FTQEYGNAL         PEPLIST 0.1082750    1.772 <= WB
+   1 HLA-A*02:01      YLNRQFGAV YLNRQFGAV  0  0  0  0  0    YLNRQFGAV         PEPLIST 0.2672130    0.865 <= WB
+   1 HLA-A*02:01      ILVMILMVL ILVMILMVL  0  0  0  0  0    ILVMILMVL         PEPLIST 0.0439760    3.149
+   1 HLA-A*02:01      DDKREKDRK DDKREKDRK  0  0  0  0  0    DDKREKDRK         PEPLIST 0.0000010   95.000
+   1 HLA-A*02:01      ALGTFINQL ALGTFINQL  0  0  0  0  0    ALGTFINQL         PEPLIST 0.8010450    0.107 <= SB
+   1 HLA-A*02:01      SLNRTFRLV SLNRTFRLV  0  0  0  0  0    SLNRTFRLV         PEPLIST 0.1636310    1.334 <= WB
+   1 HLA-A*02:01      GLTDAFNQP GLTDAFNQP  0  0  0  0  0    GLTDAFNQP         PEPLIST 0.0183240    4.955
+   1 HLA-A*02:01      ALXDFXNQV ALXDFXNQV  0  0  0  0  0    ALXDFXNQV         PEPLIST 0.9873110    0.005 <= SB
+   1 HLA-A*02:01      FATEDHGKL FATEDHGKL  0  0  0  0  0    FATEDHGKL         PEPLIST 0.0061070    8.408
+   1 HLA-A*02:01      GLWDPFNAV GLWDPFNAV  0  0  0  0  0    GLWDPFNAV         PEPLIST 0.9629600    0.017 <= SB
+---------------------------------------------------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele HLA-A*02:01. Number of high binders 10. Number of weak binders 4. Number of peptides 18
+
+Link to Allele Frequencies in Worldwide Populations HLA-A02:01
+-----------------------------------------------------------------------------------
+Go back.
