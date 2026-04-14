@@ -23,32 +23,35 @@ SCORE_NAME = "B_erap_nterm_proxy"
 VALID_AA = set("ACDEFGHIKLMNPQRSTVWY")  # 20 standard amino acids
 MIN_LENGTH = 8
 MAX_LENGTH = 11
-PENALTY = -1.0  # worst possible score, same as glycine (hardest to trim)
+PENALTY = -1.0  # worst possible score, same as glycine (cleaved too fast)
 
 # ERAP1 trimming preference table (Saveanu et al., 2005).
-# Positive values = efficiently trimmed (favorable for presentation).
-# Negative values = poorly trimmed (unfavorable, peptide may be destroyed).
+# Positive values = resistant to ERAP → peptide preserved → good for presentation.
+# Negative values = well cleaved by ERAP → peptide shortened → bad for presentation.
 ERAP_TRIMMING = {
-    "P": 1.0,  # proline — best substrate for ERAP
-    "K": 0.7,  # basic residues — good substrates
+    # Resistant to ERAP → peptide preserved → good for presentation
+    "P": 1.0,  # proline blocks the enzyme (peptide bond to proline is hard to cleave)
+    "K": 0.7,  # basic residues resist trimming
     "R": 0.7,
-    "D": 0.5,  # acidic residues — moderate
+    "D": 0.5,  # acidic residues resist (slower)
     "E": 0.5,
-    "H": 0.4,  # histidine — moderate
-    "N": 0.2,  # polar residues — weak substrates
+    "H": 0.4,
+    "N": 0.2,
     "Q": 0.2,
-    "C": 0.1,  # cysteine — near neutral
-    "V": 0.0,  # small hydrophobic — neutral
+    "C": 0.1,
+    # Neutral
+    "V": 0.0,
     "I": 0.0,
     "T": 0.0,
     "W": 0.0,
     "Y": 0.0,
-    "L": -0.5,  # bulky hydrophobic — poor substrates
+    # Well cleaved by ERAP → peptide shortened → bad for presentation
+    "L": -0.5,  # bulky hydrophobic — preferred ERAP substrates
     "M": -0.5,
     "F": -0.5,
-    "A": -0.8,  # small residues — resist trimming
+    "A": -0.8,  # small residues — very well cleaved
     "S": -0.8,
-    "G": -1.0,  # glycine — worst, blocks ERAP almost entirely
+    "G": -1.0,  # glycine — cleaved extremely fast
 }
 
 
