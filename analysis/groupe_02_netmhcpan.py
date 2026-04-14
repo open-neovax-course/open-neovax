@@ -148,7 +148,7 @@ def compare_rankings(
     source["peptide_mut"] = source["peptide_mut"].astype(str).str.upper()
 
     merged = pipeline_df.merge(
-        source[["candidate_id", "peptide_mut", "note"]],
+        source[["candidate_id", "peptide_mut"]],
         on=["candidate_id", "peptide_mut"],
         how="left",
     )
