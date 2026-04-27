@@ -45,8 +45,8 @@ def test_score_value_finite():
     assert not math.isinf(value)
 
 
-def test_exact_self_peptide_strongest_penalty(monkeypatch):
-    """Distance 0 should be penalized more than distance 1."""
+def test_exact_self_peptide_lowest_score(monkeypatch):
+    """Distance 0 should get the exact distance 0.0, distance 1 -> 1.0."""
     # Control the self-peptide corpus: only one peptide of length 9.
     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", {"AAAAAAAAA"})
 
@@ -56,11 +56,12 @@ def test_exact_self_peptide_strongest_penalty(monkeypatch):
     _, score_exact = groupe_02_d2.get_score(candidate_exact)
     _, score_d1 = groupe_02_d2.get_score(candidate_d1)
 
-    assert score_exact < score_d1 <= 0.0
+    assert score_exact == 0.0
+    assert score_d1 == 1.0
 
 
-def test_distance_two_penalty_weaker_than_distance_one(monkeypatch):
-    """Distance 2 should be penalized less than distance 1, but still negative."""
+def test_distance_two_larger_than_distance_one(monkeypatch):
+    """Distance 2 should get 2.0, distance 1 should get 1.0."""
     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", {"AAAAAAAAA"})
 
     candidate_d1 = _make_candidate(peptide_mut="AAAAAAAAV")  # distance 1
@@ -69,18 +70,19 @@ def test_distance_two_penalty_weaker_than_distance_one(monkeypatch):
     _, score_d1 = groupe_02_d2.get_score(candidate_d1)
     _, score_d2 = groupe_02_d2.get_score(candidate_d2)
 
-    assert score_d1 < score_d2 <= 0.0
+    assert score_d1 == 1.0
+    assert score_d2 == 2.0
 
 
-def test_distance_ge_three_neutral(monkeypatch):
-    """Peptides far from self (distance >= 3) should be neutral (0.0)."""
+def test_distance_ge_three_actual_distance(monkeypatch):
+    """Peptides far from self get their actual distance."""
     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", {"AAAAAAAAA"})
 
     # At least three differences from "AAAAAAAAA".
     far_mutant = "VVVAAAAAA"
     _, score_far = groupe_02_d2.get_score(_make_candidate(peptide_mut=far_mutant))
 
-    assert score_far == 0.0
+    assert score_far == 3.0
 
 
 def test_lowercase_peptide_equivalent_to_uppercase(monkeypatch):
@@ -106,7 +108,7 @@ def test_empty_peptide_returns_neutral_score():
 
 
 def test_missing_corpus_returns_neutral_score(monkeypatch):
-    """Missing or empty corpus should yield a neutral score."""
+    """Missing or empty corpus should yield a neutral score (peptide length)."""
     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", set())
 
     name, value = groupe_02_d2.get_score(_make_candidate(peptide_mut="AAAAAAAAA"))
@@ -116,7 +118,8 @@ def test_missing_corpus_returns_neutral_score(monkeypatch):
 
 
 def test_no_same_length_in_corpus_returns_neutral_score(monkeypatch):
-    """If no self peptide has the same length, score must be neutral."""
+    """If no self peptide has the same length,
+    score must be neutral (peptide length)."""
     # Corpus only has 4-mers, while candidate peptide is a 9-mer.
     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", {"AAAA", "BBBB"})
 
@@ -124,17 +127,6 @@ def test_no_same_length_in_corpus_returns_neutral_score(monkeypatch):
 
     assert name == groupe_02_d2.SCORE_NAME
     assert value == 0.0
-
-
-# def test_nonstandard_amino_acids_return_neutral_score(monkeypatch):
-#     """Peptides with non-standard amino acids should return a neutral score."""
-#     monkeypatch.setattr(groupe_02_d2, "_SELF_PEPTIDES", {"AAAAAAAAA"})
-
-#     candidate = _make_candidate(peptide_mut="AAAAAAAXA")  # 'X' is non-standard here
-#     name, value = groupe_02_d2.get_score(candidate)
-
-#     assert name == groupe_02_d2.SCORE_NAME
-#     assert value == 0.0
 
 
 def test_edge_case_short_peptide():
