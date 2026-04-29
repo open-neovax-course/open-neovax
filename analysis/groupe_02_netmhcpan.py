@@ -16,12 +16,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import pandas as pd
-from scipy.stats import spearmanr
+import pandas as pd  # noqa: E402
+from scipy.stats import spearmanr  # noqa: E402
 
-from logic.data_loader import load_candidates
-from logic.orchestrator import run_modules
-from logic.scoring import aggregate
+from logic.data_loader import load_candidates  # noqa: E402
+from logic.orchestrator import run_modules  # noqa: E402
+from logic.scoring import aggregate  # noqa: E402
 
 DATA_DIR = PROJECT_ROOT / "data"
 ANALYSIS_DIR = PROJECT_ROOT / "analysis"
