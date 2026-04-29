@@ -44,3 +44,7 @@ _teacher/
 
 # Claude Code config
 .claude/
+
+# Other
+generate_figures.py
+run_benchmark_standalone.py

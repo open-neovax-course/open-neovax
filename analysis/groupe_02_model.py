@@ -14,12 +14,12 @@ from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", tempfile.gettempdir())
 
-import matplotlib
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ANALYSIS_DIR = PROJECT_ROOT / "analysis"
@@ -42,7 +42,8 @@ LABEL_MAP = {"GOLD": 1, "GOOD": 1, "MEDIOCRE": 0, "BAD": 0, "TRAP": 0}
 def load_scores(path: Path) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(
-            f"{path} not found. Run `python analysis/score_analysis.py --generate` first."
+            f"{path} not found. "
+            "Run `python analysis/score_analysis.py --generate` first."
         )
     df = pd.read_csv(path)
     if "label" not in df.columns and "note" in df.columns:
@@ -230,7 +231,8 @@ def rank_patient_zero(results, features: list[str]):
         for i, r in ranking.iterrows():
             marker = "  <--" if r["candidate_id"] == "CAND_01" else ""
             print(
-                f"  {i + 1:>2}. {r['candidate_id']:<8} {r['score']:.3f}  {r['label']}{marker}"
+                f"  {i + 1:>2}. {r['candidate_id']:<8} "
+                f"{r['score']:.3f}  {r['label']}{marker}"
             )
 
         cand_rank = int(ranking.index[ranking["candidate_id"] == "CAND_01"][0]) + 1
