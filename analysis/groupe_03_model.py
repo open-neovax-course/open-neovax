@@ -8,9 +8,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import shap
+
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.inspection import permutation_importance
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
 
@@ -77,9 +84,7 @@ def load_and_preprocess():
     X_train_scaled = scaler.fit_transform(X_train_clip)
     X_zero_scaled = scaler.transform(X_zero_clip)
 
-    print(f"Features: {len(feature_cols)} | Training instances: {len(y_train)}")
-    print("Outliers clipped to 1st percentile to protect scaler.\n")
-    
+    print(f"Features: {len(feature_cols)} | Training instances: {len(y_train)}\n")
     return feature_cols, X_train_scaled, y_train, X_zero_scaled, df_zero
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -93,7 +98,6 @@ def train_regularized_models(X_train, y_train):
     
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
     
-    # Anti-Overfitting applied to all models
     models = {
         "Logistic Regression": LogisticRegression(
             C=0.5, class_weight="balanced", random_state=RANDOM_STATE
@@ -113,25 +117,59 @@ def train_regularized_models(X_train, y_train):
         model.fit(X_train, y_train)
         trained_models[name] = model
 
-    print("\n[INFO] Models are regularized to prevent memorization.\n")
+    print()
     return trained_models
 
 def get_consensus_proba(models, X):
-    """Combines RF, GB, and LR probabilities into a stable ensemble score."""
     p_rf = models["Random Forest"].predict_proba(X)[:, 1]
     p_gb = models["Gradient Boosting"].predict_proba(X)[:, 1]
     p_lr = models["Logistic Regression"].predict_proba(X)[:, 1]
-    
-    # Ensemble weighting: 40% RF, 40% GB, 20% LR
     return (0.4 * p_rf) + (0.4 * p_gb) + (0.2 * p_lr)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 3. CONSENSUS RANKING
+# 3. BIOLOGICAL INTERPRETABILITY & SHAP
+# ──────────────────────────────────────────────────────────────────────────────
+
+def interpret_biology(models, X_train, y_train, feature_cols, X_zero):
+    print("=" * 50)
+    print("3. BIOLOGICAL INTERPRETABILITY (Permutation & SHAP)")
+    print("=" * 50)
+    
+    rf_model = models["Random Forest"]
+    
+    # Permutation Importance
+    perm = permutation_importance(rf_model, X_train, y_train, n_repeats=30, random_state=RANDOM_STATE)
+    perm_imp = perm.importances_mean
+    
+    print("Top 5 Biological Drivers (Global Importance):")
+    order = np.argsort(perm_imp)[::-1]
+    for i in order[:5]:
+        feat = feature_cols[i]
+        meaning = BIO_MEANING.get(feat, "General feature")
+        print(f"  • {feat:<28} | {meaning}")
+
+    # SHAP Explainability
+    print("\nGenerating SHAP Summary Plot...")
+    explainer = shap.TreeExplainer(rf_model)
+    shap_values = explainer.shap_values(X_zero)
+    
+    # Handle SHAP dimensionality differences across versions
+    sv_pos = shap_values[1] if isinstance(shap_values, list) else (shap_values[:, :, 1] if len(shap_values.shape) == 3 else shap_values)
+        
+    plt.figure(figsize=(10, 6))
+    shap.summary_plot(sv_pos, X_zero, feature_names=feature_cols, show=False)
+    plt.tight_layout()
+    plt.savefig(ANALYSIS_DIR / "groupe_03_shap_summary.png", dpi=150)
+    plt.close()
+    print("  [Saved] -> analysis/groupe_03_shap_summary.png\n")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. CONSENSUS RANKING
 # ──────────────────────────────────────────────────────────────────────────────
 
 def rank_patient_zero(models, X_zero, df_zero):
     print("=" * 50)
-    print("3. FINAL RANKING (Ensemble Consensus)")
+    print("4. FINAL RANKING (Ensemble Consensus)")
     print("=" * 50)
     
     proba = get_consensus_proba(models, X_zero)
@@ -150,4 +188,5 @@ def rank_patient_zero(models, X_zero, df_zero):
 if __name__ == "__main__":
     feat_cols, X_train, y_train, X_zero, df_zero = load_and_preprocess()
     models = train_regularized_models(X_train, y_train)
+    interpret_biology(models, X_train, y_train, feat_cols, X_zero)
     rank_patient_zero(models, X_zero, df_zero)
