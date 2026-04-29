@@ -9,7 +9,6 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 from pathlib import Path
 
@@ -24,13 +23,20 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ANALYSIS_DIR = PROJECT_ROOT / "analysis"
+RAW_REAL = PROJECT_ROOT / "data" / "patient_real.csv"
 
 SCORES_ONE = ANALYSIS_DIR / "scores_patient_one.csv"
 SCORES_ZERO = ANALYSIS_DIR / "scores_patient_zero.csv"
+SCORES_REAL = ANALYSIS_DIR / "scores_patient_real.csv"
 
 SEED = 42
 CV_FOLDS = 5
 LABEL_MAP = {"GOLD": 1, "GOOD": 1, "MEDIOCRE": 0, "BAD": 0, "TRAP": 0}
+
+
+# -----------------------------
+# Data
+# -----------------------------
 
 
 def load_scores(path: Path) -> pd.DataFrame:
@@ -47,6 +53,7 @@ def load_scores(path: Path) -> pd.DataFrame:
 def prepare_binary_data(df: pd.DataFrame):
     df = df.copy()
     df["label"] = df["label"].astype(str).str.upper().str.strip()
+    # Keep a strict binary task: strong candidates vs everything else.
     df = df[df["label"].isin(LABEL_MAP)].copy()
     features = [
         c for c in df.columns if c not in {"candidate_id", "label", "note", "ic50_nm"}
@@ -54,6 +61,11 @@ def prepare_binary_data(df: pd.DataFrame):
     X = df[features].apply(pd.to_numeric, errors="coerce")
     y = df["label"].map(LABEL_MAP).astype(int)
     return X, y, features
+
+
+# -----------------------------
+# Models
+# -----------------------------
 
 
 def build_models():
@@ -65,10 +77,14 @@ def build_models():
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
 
-    scaled = [("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]
+    scaled = [
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+    ]
     plain = [("imputer", SimpleImputer(strategy="median"))]
 
     return {
+        # Linear baseline.
         "LogisticRegression": Pipeline(
             scaled
             + [
@@ -95,7 +111,9 @@ def build_models():
                 )
             ]
         ),
+        # Simple probabilistic classifier.
         "GaussianNB": Pipeline(scaled + [("model", GaussianNB())]),
+        # Small neural network for a more flexible decision boundary.
         "MLP": Pipeline(
             scaled
             + [
@@ -115,6 +133,7 @@ def build_models():
 
 
 def proba(model, X: pd.DataFrame) -> np.ndarray:
+    # Use a common score so every model can be ranked the same way.
     if hasattr(model, "predict_proba"):
         return model.predict_proba(X)[:, 1]
     scores = np.asarray(model.decision_function(X), dtype=float)
@@ -149,7 +168,14 @@ def evaluate_models(X: pd.DataFrame, y: pd.Series):
     return sorted(results, key=lambda r: (r["acc_mean"], r["auc_mean"]), reverse=True)
 
 
-def feature_importance(best, X: pd.DataFrame, y: pd.Series, features: list[str]) -> pd.Series:
+# -----------------------------
+# Analysis helpers
+# -----------------------------
+
+
+def feature_importance(
+    best, X: pd.DataFrame, y: pd.Series, features: list[str]
+) -> pd.Series:
     from sklearn.inspection import permutation_importance
 
     model = best["model"].named_steps["model"]
@@ -191,8 +217,13 @@ def rank_patient_zero(results, features: list[str]):
 
     for row in results:
         scores = proba(row["model"], X_zero)
+        # Higher probability means "more likely to be a strong candidate".
         ranking = pd.DataFrame(
-            {"candidate_id": zero["candidate_id"], "score": scores, "label": zero["label"]}
+            {
+                "candidate_id": zero["candidate_id"],
+                "score": scores,
+                "label": zero["label"],
+            }
         ).sort_values("score", ascending=False, ignore_index=True)
 
         print(f"\nFINAL RANKING (patient_zero) - {row['name']}")
@@ -218,6 +249,59 @@ def rank_patient_zero(results, features: list[str]):
     return best_row
 
 
+def top_feature_experiment(
+    best, X: pd.DataFrame, y: pd.Series, importance: pd.Series
+) -> None:
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+    # Check whether the top-ranked modules already explain most of the signal.
+    cols = importance.head(8).index.tolist()
+    cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=SEED)
+    scores = cross_val_score(best["model"], X[cols], y, cv=cv, scoring="accuracy")
+    print("\nTOP-FEATURE EXPERIMENT")
+    print(f"  top_features={len(cols)}")
+    print(f"  columns={', '.join(cols)}")
+    print(f"  accuracy={scores.mean():.3f} +/- {scores.std():.3f}")
+
+
+def evaluate_real(best, features: list[str]) -> None:
+    from scipy.stats import spearmanr
+    from sklearn.metrics import roc_auc_score
+
+    real = load_scores(SCORES_REAL)
+    X_real = real[features].apply(pd.to_numeric, errors="coerce")
+    scores = proba(best["model"], X_real)
+
+    y_decoy = real["label"].map({"REAL": 1, "DECOY": 0})
+    if y_decoy.notna().all():
+        print("\nREAL vs DECOY AUC")
+        print(f"  auc={roc_auc_score(y_decoy, scores):.3f}")
+
+    # IC50 is stored in the raw dataset, not in the generated score matrix.
+    raw = pd.read_csv(RAW_REAL)[["candidate_id", "ic50_nm"]]
+    real_only = real[real["label"] == "REAL"].merge(raw, on="candidate_id", how="left")
+    real_only["ic50_nm"] = pd.to_numeric(real_only["ic50_nm"], errors="coerce")
+    real_only = real_only.dropna(subset=["ic50_nm"])
+    if not real_only.empty:
+        rho, p = spearmanr(
+            proba(
+                best["model"], real_only[features].apply(pd.to_numeric, errors="coerce")
+            ),
+            real_only["ic50_nm"],
+        )
+        print(f"\nSPEARMAN CORRELATION (REAL only) - {best['name']}")
+        print(f"  rho={rho:.3f}  pvalue={p:.3g}")
+        print(
+            "  Interpretation: a negative rho is expected because lower IC50 means "
+            "stronger binding while higher model score means a better candidate."
+        )
+
+
+# -----------------------------
+# Main
+# -----------------------------
+
+
 def main() -> None:
     train = load_scores(SCORES_ONE)
     X_train, y_train, features = prepare_binary_data(train)
@@ -228,7 +312,6 @@ def main() -> None:
     print(f"Label map: {LABEL_MAP}")
     print(f"Training set: {len(X_train)} candidates, {len(features)} score modules")
     print("Models compared: LogisticRegression, RandomForest, GaussianNB, MLP")
-
     results = evaluate_models(X_train, y_train)
     best = results[0]
     print(
@@ -238,7 +321,9 @@ def main() -> None:
 
     importance = feature_importance(best, X_train, y_train, features)
     print_importance(importance, best["name"])
-    rank_patient_zero(results, features)
+    best_zero = rank_patient_zero(results, features)
+    top_feature_experiment(best, X_train, y_train, importance)
+    evaluate_real(best_zero, features)
 
 
 if __name__ == "__main__":
