@@ -15,6 +15,10 @@ from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", tempfile.gettempdir())
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -22,6 +26,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ANALYSIS_DIR = PROJECT_ROOT / "analysis"
 
 SCORES_ONE = ANALYSIS_DIR / "scores_patient_one.csv"
+SCORES_ZERO = ANALYSIS_DIR / "scores_patient_zero.csv"
 
 SEED = 42
 CV_FOLDS = 5
@@ -144,6 +149,75 @@ def evaluate_models(X: pd.DataFrame, y: pd.Series):
     return sorted(results, key=lambda r: (r["acc_mean"], r["auc_mean"]), reverse=True)
 
 
+def feature_importance(best, X: pd.DataFrame, y: pd.Series, features: list[str]) -> pd.Series:
+    from sklearn.inspection import permutation_importance
+
+    model = best["model"].named_steps["model"]
+    if hasattr(model, "feature_importances_"):
+        s = pd.Series(model.feature_importances_, index=features, dtype=float)
+    elif hasattr(model, "coef_"):
+        s = pd.Series(np.abs(model.coef_[0]), index=features, dtype=float)
+        if s.sum() > 0:
+            s = s / s.sum()
+    else:
+        perm = permutation_importance(
+            best["model"], X, y, n_repeats=30, random_state=SEED, scoring="accuracy"
+        )
+        s = pd.Series(perm.importances_mean, index=features, dtype=float)
+    return s.sort_values(ascending=False)
+
+
+def print_importance(importance: pd.Series, model_name: str) -> None:
+    print("\nFEATURE IMPORTANCE")
+    for feat, val in importance.items():
+        print(f"  {feat:<24} {val:>7.3f}  {'#' * max(1, int(round(max(val, 0) * 50)))}")
+
+    out = ANALYSIS_DIR / f"groupe_02_feature_importance_{model_name.lower()}.png"
+    top = importance.head(12).sort_values()
+    plt.figure(figsize=(10, 6))
+    plt.barh(top.index, top.values, color="#2f6db3")
+    plt.xlabel("Importance")
+    plt.title(f"Top scoring modules - {model_name}")
+    plt.tight_layout()
+    plt.savefig(out, dpi=160)
+    plt.close()
+    print(f"\nFeature importance plot saved to {out}")
+
+
+def rank_patient_zero(results, features: list[str]):
+    zero = load_scores(SCORES_ZERO)
+    X_zero = zero[features].apply(pd.to_numeric, errors="coerce")
+    best_row, best_rank = results[0], None
+
+    for row in results:
+        scores = proba(row["model"], X_zero)
+        ranking = pd.DataFrame(
+            {"candidate_id": zero["candidate_id"], "score": scores, "label": zero["label"]}
+        ).sort_values("score", ascending=False, ignore_index=True)
+
+        print(f"\nFINAL RANKING (patient_zero) - {row['name']}")
+        for i, r in ranking.iterrows():
+            marker = "  <--" if r["candidate_id"] == "CAND_01" else ""
+            print(
+                f"  {i + 1:>2}. {r['candidate_id']:<8} {r['score']:.3f}  {r['label']}{marker}"
+            )
+
+        cand_rank = int(ranking.index[ranking["candidate_id"] == "CAND_01"][0]) + 1
+        row["cand01_rank"] = cand_rank
+        print(f"\nCAND_01 rank with {row['name']}: {cand_rank}")
+        if best_rank is None or cand_rank < best_rank:
+            best_row, best_rank = row, cand_rank
+
+    print("\nPATIENT_ZERO COMPARISON")
+    for row in results:
+        print(
+            f"  {row['name']:<22} cv_acc={row['acc_mean']:.3f}  "
+            f"cv_auc={row['auc_mean']:.3f}  CAND_01_rank={row['cand01_rank']}"
+        )
+    print(f"\nBest patient_zero ranking model: {best_row['name']}")
+    return best_row
+
+
 def main() -> None:
     train = load_scores(SCORES_ONE)
     X_train, y_train, features = prepare_binary_data(train)
@@ -161,6 +235,10 @@ def main() -> None:
         f"\nBest model: {best['name']} "
         f"(accuracy={best['acc_mean']:.3f}, auc={best['auc_mean']:.3f})"
     )
+
+    importance = feature_importance(best, X_train, y_train, features)
+    print_importance(importance, best["name"])
+    rank_patient_zero(results, features)
 
 
 if __name__ == "__main__":
