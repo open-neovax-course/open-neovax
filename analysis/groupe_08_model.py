@@ -78,9 +78,7 @@ def load_data() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     train["y"] = train["label"].apply(encode_label)
     train = train.dropna(subset=["y"])
 
-    feature_cols = [
-        c for c in train.columns if c not in ("candidate_id", "label", "y")
-    ]
+    feature_cols = [c for c in train.columns if c not in ("candidate_id", "label", "y")]
 
     X_train = train[feature_cols].fillna(0.0)
     y_train = train["y"]
@@ -110,9 +108,7 @@ MODELS: dict = {
 # ══════════════════════════════════════════════════════════════════════
 
 
-def compare_models(
-    X: np.ndarray, y: pd.Series
-) -> tuple[str, dict[str, float]]:
+def compare_models(X: np.ndarray, y: pd.Series) -> tuple[str, dict[str, float]]:
     """Run 5-fold stratified cross-validation for all models.
 
     Returns the name of the best model and all CV scores.

@@ -17,6 +17,9 @@ ENV/
 .idea/
 *.swp
 *.swo
+.Rhistory
+.RData
+.Rproj.user/
 
 # OS
 .DS_Store
