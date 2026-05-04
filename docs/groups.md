@@ -16,7 +16,6 @@
 | 05 | Gueye | Maram Sall | Maramgueye | |
 | 06 | Guo | Ziniu | ziniuGUO | — |
 | 06 | Khan | Adil | adilak1012 | |
-| 06 | Abdelkarim | Yacine | Spyrrale | |
 | 07 | Malak | Ifkharen | malakIf0 | `groupe-07` |
 | 07 | Guellal | Sofia | PyChic | |
 | 08 | Benrabh | Hanae | Jolinika | — |
@@ -25,12 +24,16 @@
 | 09 | Bouazza | Zakaria | Zakaria-BOUAZZA | — |
 | 09 | Saighi | Achraf | achraf-sg | |
 | 10 | Mattar | Mario | mmattar18 | — |
-| 10 | Azar | Elias | — | |
+| 10 | Azar | Elias | El1as630 | |
 | 11 | Al Masri | Reina | reina-m | `groupe-11` |
 | 11 | El Kassabby | Mahmoud | mkassaby | |
 | 12 | Chaffort | Lucas | LucasChaff | — |
 | 12 | Bouzada | Yacine | — | |
 | 12 | BA | Pape-Oumar | — | |
+| 13 | Essome Ndoumin | Christian | Essome12 | |
+| 13 | Talekeudjeu Goudjou | Morel | Nate380 | |
+| 14 | Rabin | Eliot | mrks2 | |
+| 15 | Abdelkarim | Yacine | Spyrrale | |
 
 ## Module assignments
 
@@ -56,12 +59,15 @@
 | 11 | D3 | Mutation in window | ★☆☆ | D |
 | 12 | D1 | Self exact match | ★☆☆ | D |
 | 12 | D5 | WT peptide presentation in self proteome | ★★☆ | D |
+| 13 | C5 | Total PSSM binding score (weighted) | ★★☆ | C |
+| 14 | A7 | Aromatic residue fraction | ★☆☆ | A |
+| 15 | B1 | Proteasome — refactoring (graduated scoring + 13 tests) | ★★☆ | B |
 
 ## Department coverage
 
 | Department | Groups | Active modules |
 |------------|--------|----------------|
-| A — Peptide properties | 01, 05, 08, 09, 11 | A1, A2, A3, A4, A8, A9 |
-| B — Processing | 06, 07, 10 | B1, B2, B3, B4, B5 |
+| A — Peptide properties | 01, 05, 08, 09, 11, 14 | A1, A2, A3, A4, A7, A8, A9 |
+| B — Processing | 06, 07, 10, 15 | B1, B2, B3, B4, B5 |
 | C — HLA binding | 02, 03, 04 | C1, C2, C3, C4, C6 |
 | D — Self / safety | 02, 11, 12 | D1, D2, D3, D5 |

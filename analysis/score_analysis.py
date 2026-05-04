@@ -99,92 +99,18 @@ def generate_score_matrix(patient_file: str = "patient_one.csv") -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  STEP 2 — Train and evaluate models (YOUR WORK)
+#  STEP 2 — Train and evaluate models
+#
+#  DO NOT implement your model here.
+#  Create your own file: analysis/groupe_XX_model.py
+#  See docs/ml-guide.md for the full guide and issue #39 on GitHub.
 # ══════════════════════════════════════════════════════════════════════
-
-# Label encoding: higher = better candidate
-LABEL_MAP = {"GOLD": 4, "GOOD": 3, "MEDIOCRE": 2, "BAD": 1, "TRAP": 0, "NEUTRAL": 2}
 
 
 def train_and_evaluate():
-    import numpy as np
-    import pandas as pd
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import cross_val_score
-    from sklearn.preprocessing import StandardScaler
-
-    # -------------------------
-    # LOAD DATA
-    # -------------------------
-    train = pd.read_csv("analysis/scores_patient_one.csv")
-    test = pd.read_csv("analysis/scores_patient_zero.csv")
-
-    # -------------------------
-    # LABEL ENCODING
-    # -------------------------
-    def encode(label):
-        if label in ["GOLD", "GOOD"]:
-            return 1
-        elif label in ["BAD", "TRAP"]:
-            return 0
-        else:
-            return np.nan
-
-    train = train.dropna(subset=["label"])
-    train["y"] = train["label"].apply(encode)
-    train = train.dropna(subset=["y"])
-
-    X_train = train.drop(columns=["candidate_id", "label", "y"])
-    y_train = train["y"]
-
-    X_test = test.drop(columns=["candidate_id", "label"])
-
-    # -------------------------
-    # SCALE FEATURES
-    # -------------------------
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # -------------------------
-    # MODELS
-    # -------------------------
-    models = {
-        "LogReg": LogisticRegression(max_iter=1000),
-        "RandomForest": RandomForestClassifier(n_estimators=200, random_state=42),
-    }
-
-    print("\n=== CROSS VALIDATION ===")
-
-    for name, model in models.items():
-        scores = cross_val_score(model, X_train_scaled, y_train, cv=5)
-        print(f"{name}: {scores.mean():.3f}")
-
-    # -------------------------
-    # FIT BEST MODEL (RF)
-    # -------------------------
-    rf = RandomForestClassifier(n_estimators=200, random_state=42)
-    rf.fit(X_train_scaled, y_train)
-
-    # -------------------------
-    # FEATURE IMPORTANCE
-    # -------------------------
-    importances = pd.Series(rf.feature_importances_, index=X_train.columns)
-    importances = importances.sort_values(ascending=False)
-
-    print("\n=== FEATURE IMPORTANCE ===")
-    print(importances.head(10))
-
-    # -------------------------
-    # PREDICT TEST SET
-    # -------------------------
-    test["score"] = rf.predict_proba(X_test_scaled)[:, 1]
-
-    ranking = test.sort_values("score", ascending=False)
-
-    print("\n=== FINAL RANKING (patient_zero) ===")
-    print(ranking[["candidate_id", "score"]].head(18))
+    """Placeholder — see docs/ml-guide.md for instructions."""
+    print("Create your model in analysis/groupe_XX_model.py")
+    print("See docs/ml-guide.md for the full guide.")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -213,6 +139,9 @@ if __name__ == "__main__":
         print()
         print("Generating score matrix for patient_zero...")
         generate_score_matrix("patient_zero.csv")
+        print()
+        print("Generating score matrix for patient_real...")
+        generate_score_matrix("patient_real.csv")
         print()
 
     if args.train:
